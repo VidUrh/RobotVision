@@ -3,9 +3,8 @@ Script to detect plastic objects in a video stream using a mathematical morpholo
 """
 import cv2
 import numpy as np
+import glob
 
-
-# Function to get object coordinates from a contour
 def getCoordinates(contour):
     """
     Function to get object coordinates from a contour
@@ -28,7 +27,6 @@ def getCoordinates(contour):
     return x, y
 
 
-# Function to get the orientation of an object
 def getOrientation(objectContour, img):
     """
     Function to get object orientation from its contour
@@ -60,59 +58,67 @@ def getOrientation(objectContour, img):
     if width < height:
         orientation = orientation - 90
 
-    isUpside = getTopBottomOrientation(objectContour, rotatedRect, orientation)
+    # Get center coordinates of rotated rectangle and of the contour
+    rectCx, rectCy = map(int, rotatedRect[0])
+    cX, cY = getCoordinates(objectContour)
 
-    # orientation = orientation + 180*isUpside
+    # Determine if the object is upside down
+    isUpside = getTopBottomOrientation(rectCx, rectCy, cX, cY, orientation)
+    # Fix orientation if flipped
+    orientation = orientation + 180 * isUpside
+
+    # Fix orientation if negative
+    if orientation < 0:
+        orientation = orientation + 360
 
     cv2.putText(img, str(orientation),
-                (int(rotatedRect[0][0]), int(rotatedRect[0][1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                (int(rotatedRect[0][0]), int(rotatedRect[0][1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
 
     return orientation
 
 
-# Function to get the top-bottom orientation of an object
-def getTopBottomOrientation(contour, rotatedRect, orientation):
+def getTopBottomOrientation(rectCx, rectCy, cX, cY, orientation):
     """
     Function to get the top-bottom orientation of an object
     Args:
-        contour: contour of the object
-        rotatedRect: rotated rectangle around the object
+        rectCx: center x coordinate of the rotated rectangle
+        rectCy: center y coordinate of the rotated rectangle
+        cX: center x coordinate of the contour
+        cY: center y coordinate of the contour
         orientation: orientation of the object
     Returns:
         isUpside: bool() value if the object is upside down
     """
 
-    # get the center of the rotated rectangle
-    center = rotatedRect[0]
-    rectCx = int(center[0])
-    rectCy = int(center[1])
-
-    # get the center of the contour
-    M = cv2.moments(contour)
-    if M["m00"] == 0:
-        return False
-    cX = int(M["m10"] / M["m00"])
-    cY = int(M["m01"] / M["m00"])
-
-    r = 5
-
-    cv2.rectangle(img, (cX-r, cY-r), (cX+r, cY+r), (0, 0, 255), 1)
-    cv2.rectangle(img, (rectCx-r, rectCy-r),
-                  (rectCx+r, rectCy+r), (255, 0, 255), 1)
-
-    width = rotatedRect[-2][0]
-    height = rotatedRect[-2][1]
-
-    # if the contour is above the center of the rotated rectangle and the height is greater than the width, the object is upside down
-    # elif the contour is to the right of the center of the rotated rectangle and the width is greater than the height, the object is upside down
-    # else the object is right side up
-    if (cY < rectCy and height > width) or (cX > rectCx and width > height):
-        return True
+    # If the objects orientation is horizontal
+    #   then check if the center of the contour is to the left of the center of the rotated rectangle,
+    #   if it is, the object is upside down
+    if 0 <= abs(orientation) < 45:
+        if cX > rectCx:
+            isUpside = 1
+        else:
+            isUpside = 0
+    # If the objects orientation is vertical and positive,
+    # check if the center of the contour is above the center of the rotated rectangle,
+    #   if it is not, the object is upside down
+    elif -90 <= orientation <= -45:
+        if cY < rectCy:
+            isUpside = 1
+        else:
+            isUpside = 0
+    # If the objects orientation is vertical and negative,
+    # check if the center of the contour is below the center of the rotated rectangle,
+    #   if it is not, the object is upside down
+    elif 45 <= orientation <= 90:
+        if cY > rectCy:
+            isUpside = 1
+        else:
+            isUpside = 0
     else:
-        return False
+        isUpside = 0
+    return isUpside
 
 
-# Function to extract plastic objects from a frame
 def extractPlasticObjects(frame):
     """
     Function to extract plastic objects from a frame
@@ -145,20 +151,14 @@ def extractPlasticObjects(frame):
     contours, hierarchy = cv2.findContours(
         dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
-    # Show frames
-    cv2.imshow("gray", gray)
-    cv2.imshow("thresh", thresh)
-    cv2.imshow("eroded", eroded)
-    cv2.imshow("dilated", dilated)
-
     # loop over the contours
     for i, contour in enumerate(contours):
 
         # calculate the perimeter of the contour
         t = cv2.arcLength(contour, True)
-
+        print(t)
         # if the perimeter is greater than 20, the contour is a plastic object
-        if t > 20:
+        if t > 20 and t < 700:
 
             # add the contour to the objects array
             objects.append(contour)
@@ -172,21 +172,23 @@ def extractPlasticObjects(frame):
 
 if __name__ == "__main__":
 
+    # define the images array as all the images in the Slike folder
+    images = [cv2.imread(file) for file in glob.glob("Slike/*.jpg")]
+    
     # For each image in the images array, extract plastic objects from the frame
-    images = [
-        cv2.imread("Slike\\template.jpg"),
-        cv2.imread("Slike\\no-overlap.jpg"),
-        cv2.imread("Slike\\overlap.jpg")
-    ]
     for img in images:
         img = cv2.resize(img, (640, 480), interpolation=cv2.INTER_AREA)
         cv2.imshow("start", img)
 
         # extract plastic objects from the frame
         frame, objects = extractPlasticObjects(frame=img)
+
         for objectContour in objects:
+            # get coordinates of the object
             x, y = getCoordinates(objectContour)
+            # get orientation of the object
             orientation = getOrientation(objectContour, frame)
+            
         # show the extracted frame
         cv2.imshow("end", frame)
         # wait for a key to be pressed
