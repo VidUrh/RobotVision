@@ -1,0 +1,23 @@
+# Parametri za kamero
+FRAME_WIDTH = 640
+FRAME_HEIGHT = 480
+CAMERA_EXPOSURE = -8
+
+# Parametri za detekcijo objektov
+MAXIMUM_OBJECT_AREA = 500
+MINIMUM_OBJECT_AREA = 100
+GRAYSCALE_THRESHOLD = 10
+
+# Transformacija v svetovne koordinate
+PIXEL_TO_MM = 0.7614
+WORLD_COORD_FROM_CAM_X = 163
+WORLD_COORD_FROM_CAM_Y = 84
+ALPHA = 0.019997334
+OFFSET_X = 0
+OFFSET_Y = 0
+
+# Prijem glede na center objekta
+OFFSET_OBJ_X = -30
+OFFSET_OBJ_Y = 3 
+
+ROBOT_IP = "192.168.64.55"

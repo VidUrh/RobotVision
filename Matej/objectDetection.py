@@ -4,14 +4,17 @@ Script to detect plastic objects in a video stream using a mathematical morpholo
 import cv2
 import numpy as np
 import glob
+from parameters import *
 
-MAXIMUM_OBJECT_AREA = 500
-MINIMUM_OBJECT_AREA = 100
-GRAYSCALE_THRESHOLD = 60
+class Object:
+    def __init__(self, contour):
+        self.contour = contour
+        self.x, self.y = getCoordinates(contour)
+        self.orientation = getOrientation(contour)
+        self.area = cv2.contourArea(contour)
 
-OFFSET_X = -30
-OFFSET_Y = 3
-
+    def __str__(self):
+        return f"Object at ({self.x}, {self.y}) with orientation {self.orientation} and area {self.area}"
 
 def getCoordinates(contour):
     """
@@ -154,7 +157,9 @@ def extractPlasticObjects(frame):
     # find contours in the frame
     contours, hierarchy = cv2.findContours(
         dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
+    
+    cv2.imshow("eroded", eroded)
+    cv2.imshow("dilated", dilated)
     # loop over the contours
     for i, contour in enumerate(contours):
 
@@ -164,7 +169,26 @@ def extractPlasticObjects(frame):
         # if the perimeter is greater than 20, the contour is a plastic object
         if t > MINIMUM_OBJECT_AREA and t < MAXIMUM_OBJECT_AREA:
             # add the contour to the objects array
-            objects.append(contour)
+            x, y = getCoordinates(contour)
+            orientation = getOrientation(contour)
+            
+            foundObject = Object(contour, x, y, orientation)
+            objects.append(foundObject)
 
     # return the frame and the objects array
     return frame, objects
+
+if __name__ == "__main__":
+    cam = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+    while True:
+        ret, frame = cam.read()
+        frame, objects = extractPlasticObjects(frame)
+        for i, object in enumerate(objects):
+            x, y = getCoordinates(object)
+            orientation = getOrientation(object)
+            #cv2.putText(frame, str(orientation), (x + OFFSET_X, y + OFFSET_Y),
+             #           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.circle(frame, (int(x), int(y)), 5, (0, 0, 255), 1)
+        cv2.imshow("Frame", frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break

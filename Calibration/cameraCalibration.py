@@ -1,25 +1,58 @@
+import pickle
 import numpy as np
 import cv2
 import glob
 
-# termination criteria
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-# Arrays to store object points and image points from all the images.
-imgpoints = [] # 2d points in image plane.
-images = glob.glob('./Calibration*.png')
+# Step 1: Prepare a checkerboard pattern
+pattern_size = (9, 13)
 
-for fname in images:
-    img = cv2.imread(fname)
-    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    ret = False
-    # Find the chess board corners
-    ret, corners = cv2.findChessboardCorners(gray, (24,10))
-    # If found, add object points, image points (after refining them)
-    if ret == True:
-        cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
+# Step 2: Take photos of the checkerboard
+images = []  # List to hold the checkerboard images # Load the images here... 
+cam = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
+cam.set(cv2.CAP_PROP_EXPOSURE, -9)
+
+ret, frame = cam.read()
+while not ret:
+    ret, frame = cam.read()
+images.append(frame)
+cv2.imshow("frame", frame)
+cv2.waitKey(0)
+# Step 3: Convert images to grayscale
+gray_images = []
+for img in images:
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray_images.append(gray)
+#    cv2.imshow('image', gray)
+#    cv2.waitKey(0)
+
+# Step 4: Detect checkerboard corners
+objpoints = []  # 3D points in real world space
+imgpoints = []  # 2D points in image plane # object points will be the same for all images
+objp = np.zeros((np.prod(pattern_size), 3), np.float32)
+objp[:, :2] = np.mgrid[0:pattern_size[0], 0:pattern_size[1]].T.reshape(-1, 2) * 0.01918 # 0.01918 is the size of the checkerboard square in meters
+for gray in gray_images:
+    ret, corners = cv2.findChessboardCorners(gray, pattern_size, None)
+    if ret:
         imgpoints.append(corners)
-        # Draw and display the corners
-        cv2.drawChessboardCorners(img, (7,7), corners, ret)
-        cv2.imshow('img',img)
+        objpoints.append(objp)
+        cv2.drawChessboardCorners(gray, pattern_size, corners, ret)
+        cv2.imshow("gray", gray)
         cv2.waitKey(0)
-cv2.destroyAllWindows()
+    print(ret) 
+
+# Step 5: Calculate camera calibration and distortion coefficients
+ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
+    objpoints, imgpoints, gray.shape[::-1], None, None)
+
+
+_, R = cv2.Rodrigues(rvecs)
+print(R)
+T = np.zeros((4, 4))
+T[:3, :3] = R
+T[:3, 3] = tvecs.ravel()
+T[3, 3] = 1
+
+with open('calibrationData.pkl', 'wb') as f:
+    data = {'mtx': mtx, 'dist': dist, 'T': T}
+    pickle.dump(data, f)
