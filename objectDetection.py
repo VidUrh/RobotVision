@@ -5,6 +5,14 @@ import cv2
 import numpy as np
 import glob
 
+MAXIMUM_OBJECT_AREA = 500
+MINIMUM_OBJECT_AREA = 100
+GRAYSCALE_THRESHOLD = 60
+
+OFFSET_X = -30
+OFFSET_Y = 3
+
+
 def getCoordinates(contour):
     """
     Function to get object coordinates from a contour
@@ -27,7 +35,7 @@ def getCoordinates(contour):
     return x, y
 
 
-def getOrientation(objectContour, img):
+def getOrientation(objectContour):
     """
     Function to get object orientation from its contour
     Args:
@@ -52,8 +60,6 @@ def getOrientation(objectContour, img):
     width = rotatedRect[-2][0]
     height = rotatedRect[-2][1]
 
-    cv2.drawContours(img, [box], 0, (255, 0, 0), 1)
-
     # Get true orientation from calculated angle
     if width < height:
         orientation = orientation - 90
@@ -70,9 +76,6 @@ def getOrientation(objectContour, img):
     # Fix orientation if negative
     if orientation < 0:
         orientation = orientation + 360
-
-    cv2.putText(img, str(orientation),
-                (int(rotatedRect[0][0]), int(rotatedRect[0][1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
 
     return orientation
 
@@ -136,10 +139,11 @@ def extractPlasticObjects(frame):
     gray = cv2.GaussianBlur(gray, (5, 5), 2)
 
     # apply thresholding to the frame
-    ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+    ret, thresh = cv2.threshold(
+        gray, GRAYSCALE_THRESHOLD, 255, cv2.THRESH_BINARY)
 
     # define the kernel
-    kernel = np.ones((5, 5), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
 
     # erode the frame
     eroded = cv2.erode(thresh, kernel, iterations=4)
@@ -156,42 +160,11 @@ def extractPlasticObjects(frame):
 
         # calculate the perimeter of the contour
         t = cv2.arcLength(contour, True)
-        print(t)
-        # if the perimeter is greater than 20, the contour is a plastic object
-        if t > 20 and t < 700:
 
+        # if the perimeter is greater than 20, the contour is a plastic object
+        if t > MINIMUM_OBJECT_AREA and t < MAXIMUM_OBJECT_AREA:
             # add the contour to the objects array
             objects.append(contour)
 
-            # draw the contour on the frame
-            cv2.drawContours(frame, [contour], -1, (0, 255, 0), 2)
-
     # return the frame and the objects array
     return frame, objects
-
-
-if __name__ == "__main__":
-
-    # define the images array as all the images in the Slike folder
-    images = [cv2.imread(file) for file in glob.glob("Slike/*.jpg")]
-    
-    # For each image in the images array, extract plastic objects from the frame
-    for img in images:
-        img = cv2.resize(img, (640, 480), interpolation=cv2.INTER_AREA)
-        cv2.imshow("start", img)
-
-        # extract plastic objects from the frame
-        frame, objects = extractPlasticObjects(frame=img)
-
-        for objectContour in objects:
-            # get coordinates of the object
-            x, y = getCoordinates(objectContour)
-            # get orientation of the object
-            orientation = getOrientation(objectContour, frame)
-            
-        # show the extracted frame
-        cv2.imshow("end", frame)
-        # wait for a key to be pressed
-        cv2.waitKey(0)
-        # close all windows
-        cv2.destroyAllWindows()
