@@ -17,6 +17,7 @@ while not ret:
     ret, frame = cam.read()
 images.append(frame)
 cv2.imshow("frame", frame)
+cv2.imwrite("calibrationImage.png", frame)
 cv2.waitKey(0)
 # Step 3: Convert images to grayscale
 gray_images = []
@@ -39,20 +40,12 @@ for gray in gray_images:
         cv2.drawChessboardCorners(gray, pattern_size, corners, ret)
         cv2.imshow("gray", gray)
         cv2.waitKey(0)
-    print(ret) 
 
 # Step 5: Calculate camera calibration and distortion coefficients
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
     objpoints, imgpoints, gray.shape[::-1], None, None)
 
 
-_, R = cv2.Rodrigues(rvecs)
-print(R)
-T = np.zeros((4, 4))
-T[:3, :3] = R
-T[:3, 3] = tvecs.ravel()
-T[3, 3] = 1
-
 with open('calibrationData.pkl', 'wb') as f:
-    data = {'mtx': mtx, 'dist': dist, 'T': T}
+    data = {'mtx': mtx, 'dist': dist}
     pickle.dump(data, f)

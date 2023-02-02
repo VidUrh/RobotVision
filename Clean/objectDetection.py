@@ -77,7 +77,6 @@ def getOrientation(objectContour):
     # Fix orientation if flipped
     orientation = orientation + 180 * isUpside
 
-
     # Fix orientation if negative
     if orientation < 0:
         orientation = orientation + 360
@@ -139,8 +138,8 @@ def transformIntoWorldCoordinates(x, y, orientation):
         y: y coordinate of the object in real world coordinates
     """
     # Calculate the real world coordinates of the object
-    x = (x - WORLD_COORD_FROM_CAM_X) * PIXEL_TO_MM
-    y = (y - WORLD_COORD_FROM_CAM_Y) * PIXEL_TO_MM
+    x = (x - ORIGIN_COORD_FROM_CAM_X) * PIXEL_TO_MM
+    y = (y - ORIGIN_COORD_FROM_CAM_Y) * PIXEL_TO_MM
 
     # Rotate the coordinates of the object
     x, y = rotateCoordinates(x, y)
@@ -208,15 +207,20 @@ def extractPlasticObjects(frame):
         if t > MINIMUM_OBJECT_AREA and t < MAXIMUM_OBJECT_AREA:
 
             x, y = getCoordinates(contour)  # Pixel coordinates
+            pixelX, pixelY = x, y
             orientation = getOrientation(contour)
+            cv2.putText(frame, str(x), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
+            cv2.putText(frame, str(y), (x, y+20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
             cv2.circle(frame, (x, y), 3, (0, 0, 255), 1)
             x, y = transformIntoWorldCoordinates(x, y, orientation)
-            
+
             # Offset the coordinates to the center of the object
             # Regarding the orientation of the object
             x += OFFSET_X * np.cos(orientation) + OFFSET_Y * np.sin(orientation)
             y += OFFSET_X * np.sin(orientation) + OFFSET_Y * np.cos(orientation)
-            
+
+            cv2.putText(frame, str(x), (pixelX, pixelY + 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
+            cv2.putText(frame, str(y), (pixelX, pixelY + 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
             cv2.drawContours(frame, contours, i, (0, 255, 0), 3)
             foundObject = Object(contour, x, y, orientation)
             objects.append(foundObject)
