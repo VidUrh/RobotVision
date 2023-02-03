@@ -32,3 +32,7 @@ OFFSET_OBJ_Y = 3
 
 ROBOT_IP = "192.168.64.55"
 ROBOT = False
+
+# calibration checkerboard
+CHECKERBOARD = (9, 13)
+CHECKERBOARD_SQUARE_SIZE = 19.3
