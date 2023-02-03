@@ -1,5 +1,10 @@
 from xarm.wrapper import XArmAPI
-from parameters import *
+# import parameters from clean folder
+import sys
+sys.path.insert(0, 'C:/Users/mohor/Documents/1_PROJEKTI/1_odprti/RobotVision/Clean')
+from parameters import ROBOT_IP
+# adding clean folder to the system path
+
 import time
 
 robot = XArmAPI(ROBOT_IP)
@@ -12,17 +17,13 @@ time.sleep(1)
 timeout = 2
 rspeed = 70
 squareSize = 19.18 # in mm
-rZ = -2
+rZ = -0.5 # in mm
 
 while 1:
-    # wait for user input
-
     robot.set_position(x=0, y = 0,z = rZ, speed=rspeed, wait=True)
     time.sleep(timeout)
-    
     robot.set_position(x=8*squareSize, y = 0,z = rZ, speed=rspeed, wait=True)
     time.sleep(timeout)
-    #input("Press Enter to continue...")
     robot.set_position(x=8*squareSize, y = 8*squareSize,z = rZ, speed=rspeed, wait=True)
     time.sleep(timeout)
     robot.set_position(x=0, y = 8*squareSize,z = rZ, speed=rspeed, wait=True)
