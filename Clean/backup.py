@@ -126,29 +126,22 @@ def getTopBottomOrientation(rectCx, rectCy, cX, cY, orientation):
     return isUpside
 
 
-def transformIntoWorldCoordinates(x, y, orientation):
+def transform_POS_CAMERA_TO_ORIGIN(x, y):
     """
     Function to transform the coordinates of an object into real world coordinates
     Args:
-        x: x coordinate of the object in pixel coordinates 
-        y: y coordinate of the object in pixel coordinates
+        x: x coordinate of the object
+        y: y coordinate of the object
         orientation: orientation of the object
     Returns:
         x: x coordinate of the object in real world coordinates
         y: y coordinate of the object in real world coordinates
     """
-    # Transform x pixel coordinate into mm  coordinate
+    
     # Calculate the real world coordinates of the object
-
-
-    x = (x - ORIGIN_COORD_FROM_CAM_X) * PIXEL_TO_MM
-    y = (y - ORIGIN_COORD_FROM_CAM_Y) * PIXEL_TO_MM
-    #x = x*PIXEL_TO_MM
-    #y = y*PIXEL_TO_MM
-    # Rotate the coordinates of the object
-    # print(x,y)
-    #
-    x, y = rotateCoordinates(x, y)
+    x = (x - ORIGIN_COORD_FROM_CAM_X)
+    y = (y - ORIGIN_COORD_FROM_CAM_Y)
+    
     return x, y
 
 
@@ -163,9 +156,11 @@ def rotateCoordinates(x, y):
         y: y coordinate of the object after rotation
     """
     # Rotate the coordinates of the object
-    rotated_x = x * np.cos(ALPHA) - y * np.sin(ALPHA)
-    rotated_y = x * np.sin(ALPHA) + y * np.cos(ALPHA)
-    return rotated_x, rotated_y
+    x = x * np.cos(ALPHA) + x * np.sin(ALPHA)
+    y = y * np.sin(ALPHA) + y * np.cos(ALPHA)
+    
+    #x = math.cos(360-90-35-atan(ORIGIN_COORD_FROM_CAM_Y/ORIGIN_CORRD_FROM_CAM_X)-180-())
+    return x, y
 
 
 def extractPlasticObjects(frame):
@@ -215,31 +210,51 @@ def extractPlasticObjects(frame):
             x, y = getCoordinates(contour)  # Pixel coordinates
             pixelX, pixelY = x, y
 
-            cv2.putText(frame, str(pixelX), (pixelX, pixelY + 0),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
-            cv2.putText(frame, str(pixelY), (pixelX, pixelY + 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
-            orientation = getOrientation(contour)
-            # cv2.putText(frame, str(x), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
-            # cv2.putText(frame, str(y), (x, y+20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
-            cv2.circle(frame, (x, y), 3, (0, 0, 255), 1)
-            x, y = transformIntoWorldCoordinates(x, y, orientation)
+            X_mm = x * PIXEL_TO_MM  # Real world coordinates
+            Y_mm = y * PIXEL_TO_MM # Real world coordinates
 
+            X_world, Y_world = transform_POS_CAMERA_TO_ORIGIN(X_mm, Y_mm)
+
+            x, y = rotateCoordinates(X_world, Y_world)
+
+            orientation = getOrientation(contour) # Orientation of the object
+            cv2.circle(frame, (pixelX, pixelY), 3, (0, 0, 255), 1)
+
+
+            
+            
             # Offset the coordinates to the center of the object
             # Regarding the orientation of the object
-            # x += OFFSET_X * np.cos(orientation) + OFFSET_Y * np.sin(orientation)
-            # y += OFFSET_X * np.sin(orientation) + OFFSET_Y * np.cos(orientation)
+            #x += OFFSET_X * np.cos(orientation) + OFFSET_Y * np.sin(orientation)
+            #y += OFFSET_X * np.sin(orientation) + OFFSET_Y * np.cos(orientation)
 
-            cv2.putText(frame, str(x), (pixelX, pixelY + 40),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
-            cv2.putText(frame, str(y), (pixelX, pixelY + 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
+            cv2.putText(frame, str(x), (pixelX, pixelY + 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
+            cv2.putText(frame, str(y), (pixelX, pixelY + 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
             cv2.drawContours(frame, contours, i, (0, 255, 0), 3)
+
             foundObject = Object(contour, x, y, orientation)
             objects.append(foundObject)
 
-    cv2.line(frame, (ORIGIN_COORD_FROM_CAM_X, ORIGIN_COORD_FROM_CAM_Y), (ORIGIN_COORD_FROM_CAM_X, ORIGIN_COORD_FROM_CAM_Y+100), (0, 255, 0), 1)
-    cv2.line(frame, (ORIGIN_COORD_FROM_CAM_X, ORIGIN_COORD_FROM_CAM_Y), (ORIGIN_COORD_FROM_CAM_X+100, ORIGIN_COORD_FROM_CAM_Y), (0, 0, 255), 1)
+            # Draw line on a frame from origin to the object
+            cv2.line(frame, (ORIGIN_COORD_FROM_CAM_X, ORIGIN_COORD_FROM_CAM_Y), (pixelX, pixelY), (255, 0, 0), 1)
+
+        
+        # Draw coord systems
+        cv2.line(frame, (0, 0), (0, 100), (0, 255, 0), 1)
+        cv2.line(frame, (0, 0), (100, 0), (0, 0, 255), 1)
+
+        rotatedX, rotatedY = rotateCoordinates(0, 100)
+        rotatedX+=ORIGIN_COORD_FROM_CAM_X
+        rotatedY+=ORIGIN_COORD_FROM_CAM_Y
+        cv2.line(frame, (ORIGIN_COORD_FROM_CAM_X, ORIGIN_COORD_FROM_CAM_Y), (int(rotatedX), int(rotatedY)), (0, 255, 0), 1)
+
+        rotatedX, rotatedY = rotateCoordinates(100, 0)
+        rotatedX+=ORIGIN_COORD_FROM_CAM_X
+        rotatedY+=ORIGIN_COORD_FROM_CAM_Y
+        cv2.line(frame, (ORIGIN_COORD_FROM_CAM_X, ORIGIN_COORD_FROM_CAM_Y), (int(rotatedX), int(rotatedY)), (0, 0, 255), 1)
+
+    
+    
     # return the frame and the objects array
     cv2.imwrite("frame.jpg", frame)
     return frame, objects

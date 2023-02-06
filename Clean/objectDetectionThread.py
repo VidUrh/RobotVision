@@ -25,12 +25,13 @@ class ObjectDetectionThread(threading.Thread):
         self.cam = cv2.VideoCapture(1, cv2.CAP_DSHOW)
         self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
         self.cam.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
-
+        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
+        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)   
         # Read camera calibration data
         import pickle
-        with open("Clean\\calibrationData.pkl", 'rb') as f:
+        with open("Clean/calibrationData.pkl", 'rb') as f:
             data = pickle.load(f)
-            self.mtx = data['mtx']
+            self.mtx = data['cameraMatrix']
             self.dist = data['dist']
 
         self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(
@@ -53,16 +54,22 @@ class ObjectDetectionThread(threading.Thread):
             return
 
         # Undistort the image
+        distorted = img.copy()
         dst = cv2.undistort(img, self.mtx, self.dist, None, self.newcameramtx)
-        x, y, w, h = self.roi
-        img = dst[y:y+h, x:x+w]
+
 
         # Detect objects
+        
         img, objects = extractPlasticObjects(img)   
         cv2.imshow("drawn",img)
+        
         with self.detectedObjectsArrayLock:
             self.detectedObjectsArray = objects
-
+        
+        #img, objects = extractPlasticObjects(distorted)   
+        cv2.imshow("distorted",distorted)
+        
+        
         if cv2.waitKey(1) & 0xFF == ord('q'):
             with self.stopThreadLock:
                 self.stopThread = True

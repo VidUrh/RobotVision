@@ -1,7 +1,7 @@
 from xarm.wrapper import XArmAPI
 # import parameters from clean folder
 import sys
-sys.path.insert(0, 'C:/Users/mohor/Documents/1_PROJEKTI/1_odprti/RobotVision/Clean')
+sys.path.insert(0, '../RobotVision/Clean')
 from parameters import ROBOT_IP, CHECKERBOARD_SQUARE_SIZE
 # adding clean folder to the system path
 
