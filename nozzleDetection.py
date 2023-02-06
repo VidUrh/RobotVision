@@ -11,15 +11,16 @@ import time
 import threading
 import pickle
 
+
 class Nozzle:
     def __init__(self, position_x, position_y, rotation):
-        self.x = position_x # x koordinata nozzla v realnem svetu, v milimetrih od izhodišča
-        self.y = position_y # y koordinata nozzla v realnem svetu, v milimetrih od izhodišča
-        self.r = rotation # kot nozzla v realnem svetu, v stopinjah merjen odmik od x osi izhodišča
+        self.x = position_x  # x koordinata nozzla v realnem svetu, v milimetrih od izhodišča
+        self.y = position_y  # y koordinata nozzla v realnem svetu, v milimetrih od izhodišča
+        self.r = rotation  # kot nozzla v realnem svetu, v stopinjah merjen odmik od x osi izhodišča
 
     def __repr__(self):
         return f'Nozzle at ({self.x}, {self.y}) with rotation {self.r}'
-    
+
 
 class NozzleDetector:
     def __init__(self):
@@ -30,11 +31,11 @@ class NozzleDetector:
         self.lock = threading.Lock()
         self.image = None
         self.setupCamera()
-    
+
     def __del__(self):
         self.cam.release()
         cv2.destroyAllWindows()
-    
+
     def detectNozzles(self):
         """
             Funkcija za detekcijo nozzlov na sliki.
@@ -49,7 +50,7 @@ class NozzleDetector:
 
         # find contours in the frame
         contours = self.findContours(transformed)
-        
+
         # filter contours by size
         filteredContours = self.filterContours(contours)
 
@@ -59,13 +60,15 @@ class NozzleDetector:
         for nozzle in filteredContours:
             nozzleXpos, nozzleYpos = self.getCoordinates(nozzle)
             nozzleRotation = self.getOrientation(nozzle)
-            nozzleInWorldX,nozzleInWorldY = self.transformFromCameraToOrigin(nozzleXpos, nozzleYpos)
-            nozzles.append(Nozzle(nozzleInWorldX, nozzleInWorldY, nozzleRotation))
+            nozzleInWorldX, nozzleInWorldY = self.transformFromCameraToOrigin(
+                nozzleXpos, nozzleYpos)
+            nozzles.append(
+                Nozzle(nozzleInWorldX, nozzleInWorldY, nozzleRotation))
 
         with self.lock:
             self.nozzles = nozzles
         return None
-    
+
     def setupCamera(self):
         self.cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
@@ -90,7 +93,8 @@ class NozzleDetector:
             Function to remove distortion from the image.
         """
         # undistort the image
-        undistorted = cv2.undistort(distortedImage, self.newcameramtx, self.dist)
+        undistorted = cv2.undistort(
+            distortedImage, self.newcameramtx, self.dist)
         return undistorted
 
     def transformImage(self, image):
@@ -99,7 +103,7 @@ class NozzleDetector:
         """
         # undistort the image
         image = self.undistortImage(image)
-        
+
         # convert the frame to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -107,7 +111,8 @@ class NozzleDetector:
         gray = cv2.GaussianBlur(gray, (5, 5), 2)
 
         # apply thresholding to the frame
-        ret, thresh = cv2.threshold(gray, GRAYSCALE_THRESHOLD, 255, cv2.THRESH_BINARY)
+        ret, thresh = cv2.threshold(
+            gray, GRAYSCALE_THRESHOLD, 255, cv2.THRESH_BINARY)
 
         # define the kernel
         kernel = np.ones((3, 3), np.uint8)
@@ -126,10 +131,11 @@ class NozzleDetector:
             Vrne seznam kontur.
         """
         # find the contours
-        contours, hierarchy = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(
+            image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         return contours
-        
+
     def filterContours(self, contours):
         """
             Funkcija za filtriranje kontur (robov).
@@ -137,12 +143,12 @@ class NozzleDetector:
         # filter the contours
         filtered_contours = []
         for index, contour in enumerate(contours):
-                # calculate the perimeter of the contour
-                nozzleCircumference = cv2.arcLength(contour, True)
-                # if the perimeter is greater than 20, the contour is a plastic object
-                if nozzleCircumference > MINIMUM_OBJECT_AREA and nozzleCircumference < MAXIMUM_OBJECT_AREA:
-                    filtered_contours.append(contour)
-                    cv2.drawContours(self.image, contours, index, (0, 255, 0), 2)
+            # calculate the perimeter of the contour
+            nozzleCircumference = cv2.arcLength(contour, True)
+            # if the perimeter is greater than 20, the contour is a plastic object
+            if nozzleCircumference > MINIMUM_OBJECT_AREA and nozzleCircumference < MAXIMUM_OBJECT_AREA:
+                filtered_contours.append(contour)
+                cv2.drawContours(self.image, contours, index, (0, 255, 0), 2)
         return filtered_contours
 
     def getCoordinates(self, contour):
@@ -195,7 +201,6 @@ class NozzleDetector:
         if width < height:
             orientation = orientation - 90
 
-
         # Determine if the object is upside down
         isUpside = self.getTopBottomOrientation(rotatedRect, objectContour)
         # Fix orientation if flipped
@@ -205,7 +210,7 @@ class NozzleDetector:
         if orientation < 0:
             orientation = orientation + 360
 
-        return 360 - orientation # Subtracting for the rotation to rise counter-clockwise
+        return 360 - orientation  # Subtracting for the rotation to rise counter-clockwise
 
     def getTopBottomOrientation(self, rotatedRect, objectContour):
         """
@@ -215,7 +220,7 @@ class NozzleDetector:
         Returns:
             isUpside: bool() value if the object is upside down
         """
-        
+
         # Get center coordinates of rotated rectangle and of the contour for determining if the nozzle is upside down
         rectCx, rectCy = map(int, rotatedRect[0])
         cX, cY = self.getCoordinates(objectContour)
@@ -264,8 +269,10 @@ class NozzleDetector:
         y = y - ORIGIN_COORD_FROM_CAM_Y
 
         # Rotate coordinates from camera frame to origin frame
-        rotatedX = x * math.cos(ORIGIN_ROTATION_FROM_CAM) - y * math.sin(ORIGIN_ROTATION_FROM_CAM)
-        rotatedY = x * math.sin(ORIGIN_ROTATION_FROM_CAM) + y * math.cos(ORIGIN_ROTATION_FROM_CAM)
+        rotatedX = x * math.cos(ORIGIN_ROTATION_FROM_CAM) - \
+            y * math.sin(ORIGIN_ROTATION_FROM_CAM)
+        rotatedY = x * math.sin(ORIGIN_ROTATION_FROM_CAM) + \
+            y * math.cos(ORIGIN_ROTATION_FROM_CAM)
         return rotatedX, rotatedY
 
     def detectingThread(self):
@@ -278,12 +285,14 @@ class NozzleDetector:
             time.sleep(0.1)
 
     def startDetecting(self):
-        self.thread = threading.Thread(target=self.detectingThread, daemon=True)
+        self.thread = threading.Thread(
+            target=self.detectingThread, daemon=True)
         self.thread.start()
 
     def stopDetecting(self):
         self.running = False
-    
+
+
 if __name__ == "__main__":
     # Create an instance of the class
     detector = NozzleDetector()
