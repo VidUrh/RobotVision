@@ -16,6 +16,7 @@ CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 ####################################################################################################################################################################
 #    SETUP CAMERA                                                                                                                                                  #
 ####################################################################################################################################################################
+
 def setupCamera():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
@@ -27,13 +28,16 @@ def setupCamera():
 ####################################################################################################################################################################
 #    TAKE CALIBRATION IMAGES                                                                                                                                       #
 ####################################################################################################################################################################
+
 def detectCheckerBoard(image, grayImage, criteria, boardDimension):
     ret, corners = cv2.findChessboardCorners(grayImage, boardDimension)
     if ret == True:
-        corners1 = cv2.cornerSubPix(grayImage, corners, (3, 3), (-1, -1), criteria)
+        corners1 = cv2.cornerSubPix(
+            grayImage, corners, (3, 3), (-1, -1), criteria)
         image = cv2.drawChessboardCorners(image, boardDimension, corners1, ret)
 
     return image, ret
+
 
 def takeCalibrationImages(camera):
     """
@@ -49,7 +53,8 @@ def takeCalibrationImages(camera):
         os.makedirs(CALIBRATION_IMAGE_DIR)
         print(f'"{CALIBRATION_IMAGE_DIR}" Directory is created')
     else:
-        makeNew = input(f'"{CALIBRATION_IMAGE_DIR}" Directory already Exists. Do you want to take new pictures? (y/n): ')
+        makeNew = input(
+            f'"{CALIBRATION_IMAGE_DIR}" Directory already Exists. Do you want to take new pictures? (y/n): ')
         if makeNew == 'y':
             # clearing the directory
             for file in os.listdir(CALIBRATION_IMAGE_DIR):
@@ -61,19 +66,21 @@ def takeCalibrationImages(camera):
             print(f'"{CALIBRATION_IMAGE_DIR}" Directory is not cleared')
             takeImages = False
             n = len(os.listdir(CALIBRATION_IMAGE_DIR))
-   
-    
+
     while True:
-        if takeImages == False: break
+        if takeImages == False:
+            break
 
         ret, calibrationImage = camera.read()
         if not ret:
             print("Unable to capture video")
             continue
         gray = cv2.cvtColor(calibrationImage, cv2.COLOR_BGR2GRAY)
-        image, board_detected = detectCheckerBoard(calibrationImage, gray, CRITERIA, CALIBRATION_SQUARES)
+        image, board_detected = detectCheckerBoard(
+            calibrationImage, gray, CRITERIA, CALIBRATION_SQUARES)
         # print(ret)
-        cv2.putText(calibrationImage, f"saved_img : {n}",(30, 40), cv2.FONT_HERSHEY_PLAIN, 1.4, (0, 255, 0), 2, cv2.LINE_AA)
+        cv2.putText(calibrationImage, f"saved_img : {n}", (
+            30, 40), cv2.FONT_HERSHEY_PLAIN, 1.4, (0, 255, 0), 2, cv2.LINE_AA)
 
         cv2.imshow("Calibration image", calibrationImage)
 
@@ -90,11 +97,14 @@ def takeCalibrationImages(camera):
 ####################################################################################################################################################################
 #    CALCULATE REPROJECTION ERROR                                                                                                                                  #
 ####################################################################################################################################################################
+
 def calculateReprojectionError(cameraMatrix, dist, rvecs, tvecs, objPoints, imgPoints):
     mean_error = 0
     for i in range(len(objPoints)):
-        imgPoints2, _ = cv2.projectPoints(objPoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
-        error = cv2.norm(imgPoints[i], imgPoints2, cv2.NORM_L2) / len(imgPoints2)
+        imgPoints2, _ = cv2.projectPoints(
+            objPoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
+        error = cv2.norm(imgPoints[i], imgPoints2,
+                         cv2.NORM_L2) / len(imgPoints2)
         mean_error += error
     print("total error: ", mean_error / len(objPoints))
 
@@ -102,36 +112,41 @@ def calculateReprojectionError(cameraMatrix, dist, rvecs, tvecs, objPoints, imgP
 ####################################################################################################################################################################
 #    PERFORM CALIBRATION                                                                                                                                           #
 ####################################################################################################################################################################
+
 def calibrateCamera():
     objPoints = []  # 3D points in real world space
     imgPoints = []  # 2D points in image plane # object points will be the same for all images
     objp = np.zeros((np.prod(CALIBRATION_SQUARES), 3), np.float32)
 
     objp[:, :2] = np.mgrid[0:CALIBRATION_SQUARES[0],
-                        0:CALIBRATION_SQUARES[1]].T.reshape(-1, 2) * CALIBRATION_SQUARE_SIZE # 3D points in real world space
+                           0:CALIBRATION_SQUARES[1]].T.reshape(-1, 2) * CALIBRATION_SQUARE_SIZE  # 3D points in real world space
 
-
-    images = [cv2.imread(filename) for filename in glob.glob(CALIBRATION_IMAGE_DIR+'/*png')]
+    images = [cv2.imread(filename)
+              for filename in glob.glob(CALIBRATION_IMAGE_DIR+'/*png')]
 
     for gray in tqdm(images):
         # Find the chess board corners
-        ret, corners = cv2.findChessboardCorners(gray, CALIBRATION_SQUARES, None)
+        ret, corners = cv2.findChessboardCorners(
+            gray, CALIBRATION_SQUARES, None)
         # If found, add object points, image points (after refining them)
         if ret == True:
             objPoints.append(objp)
             imgPoints.append(corners)
-    
+
     # Calibrate camera
-    ret, cameraMatrix, dist, rvecs, tvecs = cv2.calibrateCamera(objPoints, imgPoints, CAMERA_FRAME_SIZE, None, None)
-    
+    ret, cameraMatrix, dist, rvecs, tvecs = cv2.calibrateCamera(
+        objPoints, imgPoints, CAMERA_FRAME_SIZE, None, None)
+
     # Calculate reprojection error
-    calculateReprojectionError(cameraMatrix, dist, rvecs, tvecs, objPoints, imgPoints)
+    calculateReprojectionError(
+        cameraMatrix, dist, rvecs, tvecs, objPoints, imgPoints)
 
     return cameraMatrix, dist, rvecs, tvecs
 
 ####################################################################################################################################################################
 #    SAVE CALIBRATION DATA                                                                                                                                        #
 ####################################################################################################################################################################
+
 def saveCameraCalibration(cameraMatrix, dist, rvecs, tvecs):
     """
         Save camera calibration data to pickle file
@@ -146,9 +161,11 @@ def saveCameraCalibration(cameraMatrix, dist, rvecs, tvecs):
         pickle.dump(calibrationData, f)
         print(f"Calibration data saved to {CALIBRATION_DATA_PATH}")
 
+
 ####################################################################################################################################################################
 #                                                                           Main Code                                                                             #
 ####################################################################################################################################################################
+
 if __name__ == "__main__":
     camera = setupCamera()
     takeCalibrationImages(camera)
