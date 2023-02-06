@@ -51,6 +51,9 @@ def takeCalibrationImages(camera):
     else:
         makeNew = input(f'"{CALIBRATION_IMAGE_DIR}" Directory already Exists. Do you want to take new pictures? (y/n): ')
         if makeNew == 'y':
+            # clearing the directory
+            for file in os.listdir(CALIBRATION_IMAGE_DIR):
+                os.remove(os.path.join(CALIBRATION_IMAGE_DIR, file))
             os.rmdir(CALIBRATION_IMAGE_DIR)
             os.makedirs(CALIBRATION_IMAGE_DIR)
             print(f'"{CALIBRATION_IMAGE_DIR}" Directory is cleared and created')
@@ -62,7 +65,7 @@ def takeCalibrationImages(camera):
     
     while True:
         if takeImages == False: break
-        
+
         ret, calibrationImage = camera.read()
         if not ret:
             print("Unable to capture video")
@@ -83,6 +86,18 @@ def takeCalibrationImages(camera):
             print(f"saved image number {n}")
             n += 1  # incrementing the image counter
     print("Total saved Images:", n)
+
+####################################################################################################################################################################
+#    CALCULATE REPROJECTION ERROR                                                                                                                                  #
+####################################################################################################################################################################
+def calculateReprojectionError(cameraMatrix, dist, rvecs, tvecs, objPoints, imgPoints):
+    mean_error = 0
+    for i in range(len(objPoints)):
+        imgPoints2, _ = cv2.projectPoints(objPoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
+        error = cv2.norm(imgPoints[i], imgPoints2, cv2.NORM_L2) / len(imgPoints2)
+        mean_error += error
+    print("total error: ", mean_error / len(objPoints))
+
 
 ####################################################################################################################################################################
 #    PERFORM CALIBRATION                                                                                                                                           #
@@ -108,6 +123,9 @@ def calibrateCamera():
     
     # Calibrate camera
     ret, cameraMatrix, dist, rvecs, tvecs = cv2.calibrateCamera(objPoints, imgPoints, CAMERA_FRAME_SIZE, None, None)
+    
+    # Calculate reprojection error
+    calculateReprojectionError(cameraMatrix, dist, rvecs, tvecs, objPoints, imgPoints)
 
     return cameraMatrix, dist, rvecs, tvecs
 
