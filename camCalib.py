@@ -20,8 +20,8 @@ def setupCamera():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
     cap.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
     return cap
 
 ####################################################################################################################################################################
