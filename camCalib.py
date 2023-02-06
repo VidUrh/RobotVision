@@ -8,13 +8,24 @@ import glob
 import os
 import pickle
 from parameters import *
-import tqdm
+from tqdm import tqdm
 
 
 CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 ####################################################################################################################################################################
-#                                                                           FUNCTIONS                                                                              #
+#    SETUP CAMERA                                                                                                                                                  #
+####################################################################################################################################################################
+def setupCamera():
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
+    cap.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    return cap
+
+####################################################################################################################################################################
+#    TAKE CALIBRATION IMAGES                                                                                                                                       #
 ####################################################################################################################################################################
 def detectCheckerBoard(image, grayImage, criteria, boardDimension):
     ret, corners = cv2.findChessboardCorners(grayImage, boardDimension)
@@ -24,31 +35,38 @@ def detectCheckerBoard(image, grayImage, criteria, boardDimension):
 
     return image, ret
 
-def setupCamera():
-    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
-    cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
-    cap.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-    return cap
-
-# Take calibration images
 def takeCalibrationImages(camera):
+    """
+        Slikamo slike za kalibracijo kamere, shranjujemo jih v mapo images.
+    """
     n = 0  # image_counter
     # checking if  images dir is exist not, if not then create images directory
 
     directoryExist = os.path.isdir(CALIBRATION_IMAGE_DIR)
+    takeImages = True
     # if directory does not exist create
     if not directoryExist:
         os.makedirs(CALIBRATION_IMAGE_DIR)
         print(f'"{CALIBRATION_IMAGE_DIR}" Directory is created')
     else:
-        print(f'"{CALIBRATION_IMAGE_DIR}" Directory already Exists.')
-        n = len(os.listdir(CALIBRATION_IMAGE_DIR))
+        makeNew = input(f'"{CALIBRATION_IMAGE_DIR}" Directory already Exists. Do you want to take new pictures? (y/n): ')
+        if makeNew == 'y':
+            os.rmdir(CALIBRATION_IMAGE_DIR)
+            os.makedirs(CALIBRATION_IMAGE_DIR)
+            print(f'"{CALIBRATION_IMAGE_DIR}" Directory is cleared and created')
+        else:
+            print(f'"{CALIBRATION_IMAGE_DIR}" Directory is not cleared')
+            takeImages = False
+            n = len(os.listdir(CALIBRATION_IMAGE_DIR))
    
     
     while True:
+        if takeImages == False: break
+        
         ret, calibrationImage = camera.read()
+        if not ret:
+            print("Unable to capture video")
+            continue
         gray = cv2.cvtColor(calibrationImage, cv2.COLOR_BGR2GRAY)
         image, board_detected = detectCheckerBoard(calibrationImage, gray, CRITERIA, CALIBRATION_SQUARES)
         # print(ret)
@@ -66,9 +84,10 @@ def takeCalibrationImages(camera):
             n += 1  # incrementing the image counter
     print("Total saved Images:", n)
 
+####################################################################################################################################################################
+#    PERFORM CALIBRATION                                                                                                                                           #
+####################################################################################################################################################################
 def calibrateCamera():
-
-
     objPoints = []  # 3D points in real world space
     imgPoints = []  # 2D points in image plane # object points will be the same for all images
     objp = np.zeros((np.prod(CALIBRATION_SQUARES), 3), np.float32)
@@ -85,13 +104,37 @@ def calibrateCamera():
         # If found, add object points, image points (after refining them)
         if ret == True:
             objPoints.append(objp)
-            corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), CRITERIA)
             imgPoints.append(corners)
-            # Draw and display the corners
-            cv2.drawChessboardCorners(img, CALIBRATION_SQUARES, corners2, ret)
+    
+    # Calibrate camera
+    ret, cameraMatrix, dist, rvecs, tvecs = cv2.calibrateCamera(objPoints, imgPoints, CAMERA_FRAME_SIZE, None, None)
 
-camera = setupCamera()
-takeCalibrationImages(camera)
-calibrateCamera(camera)
-camera.release()
-cv2.destroyAllWindows()
+    return cameraMatrix, dist, rvecs, tvecs
+
+####################################################################################################################################################################
+#    SAVE CALIBRATION DATA                                                                                                                                        #
+####################################################################################################################################################################
+def saveCameraCalibration(cameraMatrix, dist, rvecs, tvecs):
+    """
+        Save camera calibration data to pickle file
+    """
+    calibrationData = {
+        "cameraMatrix": cameraMatrix,
+        "dist": dist,
+        "rvecs": rvecs,
+        "tvecs": tvecs
+    }
+    with open(CALIBRATION_DATA_PATH, "wb") as f:
+        pickle.dump(calibrationData, f)
+        print(f"Calibration data saved to {CALIBRATION_DATA_PATH}")
+
+####################################################################################################################################################################
+#                                                                           Main Code                                                                             #
+####################################################################################################################################################################
+if __name__ == "__main__":
+    camera = setupCamera()
+    takeCalibrationImages(camera)
+    cameraMatrix, dist, rvecs, tvecs = calibrateCamera()
+    saveCameraCalibration(cameraMatrix, dist, rvecs, tvecs)
+    camera.release()
+    cv2.destroyAllWindows()
