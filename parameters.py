@@ -22,8 +22,8 @@ CALIBRATION_DATA_PATH = "./calibration_data.pkl"
 ####################################################################################################################################################################
 #      DETECTION PARAMETERS                                                                                                                                        #
 ####################################################################################################################################################################
-MAXIMUM_OBJECT_ARC = 600
-MINIMUM_OBJECT_ARC = 400
+MAXIMUM_OBJECT_AREA = 600
+MINIMUM_OBJECT_AREA = 400
 GRAYSCALE_THRESHOLD = 100
 
 # Origin point of the main coordinate system
@@ -43,3 +43,14 @@ ORIGIN_ROTATION_FROM_CAM = math.atan((Y_COORD_OF_X_FROM_CAM - ORIGIN_COORD_FROM_
 
 PIXEL_TO_MM = (NUM_SQUARES * CALIBRATION_SQUARE_SIZE)/(math.sqrt((Y_COORD_OF_X_FROM_CAM -
                                                                   ORIGIN_COORD_FROM_CAM_Y) ** 2 + (ORIGIN_COORD_FROM_CAM_X-X_COORD_OF_X_FROM_CAM)**2))
+
+
+####################################################################################################################################################################
+#      ROBOT PARAMETERS                                                                                                                                           #
+####################################################################################################################################################################
+ROBOT_IP = "192.168.64.55"
+APPROACH_NOZZLE_Z = -20
+SPEED_FAST = 100
+SPEED_SLOW = 20
+SPEED_VERY_SLOW = 5
+SPEED_MIDDLE = 80
