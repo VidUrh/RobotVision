@@ -1,1 +1,0 @@
-cmd /k "%~dp0\.venv\Scripts\activate"
