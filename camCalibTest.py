@@ -16,41 +16,33 @@ Sledi preverjanje ali so kvadrati pravilno označeni in ali so dimenzije praviln
 Na koncu vse dimenzije primerjamo in izračunamo napako med njimi.
 '''
 
-NUMBER_OF_IMAGES = 1 # Number of images to take for calibration
+NUMBER_OF_IMAGES = 5 # Number of images to take for calibration
 
 ####################################################################################################
 #       Zajemi sliko kamere
 ####################################################################################################
 def getImage():
     # Initialize camera
-    cam = cv2.VideoCapture(cv2.CAP_DSHOW)
+    cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     # disable all possible auto settings
     
-    cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
-
-
+    cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
+    cam.set(cv2.CAP_PROP_EXPOSURE, (CAMERA_EXPOSURE-1))
     cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
     cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
-    time.sleep(2)
-    cam.set(cv2.CAP_PROP_EXPOSURE, -1)
-    time.sleep(2)
-    cam.set(cv2.CAP_PROP_EXPOSURE, -5)
-    time.sleep(2)
-    cam.set(cv2.CAP_PROP_EXPOSURE, -8)
 
     # print camera settings
-    print("Camera settings:")
-    print("Frame width: ", cam.get(cv2.CAP_PROP_FRAME_WIDTH))
-    print("Frame height: ", cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    print("Auto exposure: ", cam.get(cv2.CAP_PROP_AUTO_EXPOSURE))
-    print("Auto white balance: ", cam.get(cv2.CAP_PROP_AUTO_WB))
-    print("Auto focus: ", cam.get(cv2.CAP_PROP_AUTOFOCUS))
-    print("Auto bandwidth calculation: ", cam.get(cv2.CAP_PROP_XI_AUTO_BANDWIDTH_CALCULATION))
-    print("Auto white balance: ", cam.get(cv2.CAP_PROP_XI_AUTO_WB))
-    print("Auto step: ", cam.get(cv2.MAT_AUTO_STEP))
-    print("White balance temperature: ", cam.get(cv2.CAP_PROP_WB_TEMPERATURE))
-    print("Exposure: ", cam.get(cv2.CAP_PROP_EXPOSURE))
-
+    # print("Camera settings:")
+    # print("Frame width: ", cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+    # print("Frame height: ", cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    # print("Auto exposure: ", cam.get(cv2.CAP_PROP_AUTO_EXPOSURE))
+    # print("Auto white balance: ", cam.get(cv2.CAP_PROP_AUTO_WB))
+    # print("Auto focus: ", cam.get(cv2.CAP_PROP_AUTOFOCUS))
+    # print("Auto bandwidth calculation: ", cam.get(cv2.CAP_PROP_XI_AUTO_BANDWIDTH_CALCULATION))
+    # print("Auto white balance: ", cam.get(cv2.CAP_PROP_XI_AUTO_WB))
+    # print("Auto step: ", cam.get(cv2.MAT_AUTO_STEP))
+    # print("White balance temperature: ", cam.get(cv2.CAP_PROP_WB_TEMPERATURE))
+    # print("Exposure: ", cam.get(cv2.CAP_PROP_EXPOSURE))
 
     ret, image = cam.read()
     if not ret:
@@ -97,15 +89,13 @@ def undistortImage(image):
 def correctImage(image):
     # convert image to grayscale
     imageGray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    #cv2.imshow('imageGray', imageGray)
 
     # apply gaussian blur to the image
     imageBlur = cv2.medianBlur(imageGray, 3)
-    #cv2.imshow('imageBlur', imageBlur)
 
+    # sharpen image
     sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
     sharpen = cv2.filter2D(imageBlur, 0, sharpen_kernel)
-
     return sharpen
 
 
@@ -115,7 +105,8 @@ def correctImage(image):
 def findSquares(sharpen, image):
     results = pd.DataFrame(columns=['squarePlace','squareSize','error'])
     # Threshold and morph close
-    thresh = cv2.threshold(sharpen, 160, 255, cv2.THRESH_BINARY)[1]
+    thresh = cv2.threshold(sharpen, 200, 255, cv2.THRESH_BINARY)[1]
+
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
     close = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
 
@@ -158,16 +149,6 @@ def findSquares(sharpen, image):
                 cv2.putText(image, str(squareSize), (int(squarePlace[0]-70), int(squarePlace[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 2)
             
     return image, results
-
-# cv2.imshow('sharpen', sharpen)
-# cv2.imshow('close', close)
-# cv2.imshow('thresh', thresh)
-# cv2.imshow('kernel', kernel)
-# cv2.imshow('image', image)
-# # close camera
-# cam.release()
-# cv2.waitKey(0)
-
 
 
 ####################################################################################################
@@ -248,6 +229,7 @@ def main():
     errorUndistorted = resultsUndistorted['error'].mean()
     print("Error Distorted: ", errorDistorted)
     print("Error Undistorted: ", errorUndistorted)
+    
 
 if __name__ == "__main__":
     main()
