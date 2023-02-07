@@ -22,8 +22,8 @@ CALIBRATION_DATA_PATH = "./calibration_data.pkl"
 ####################################################################################################################################################################
 #      DETECTION PARAMETERS                                                                                                                                        #
 ####################################################################################################################################################################
-MAXIMUM_OBJECT_AREA = 1000
-MINIMUM_OBJECT_AREA = 400
+MAXIMUM_OBJECT_ARC = 600
+MINIMUM_OBJECT_ARC = 400
 GRAYSCALE_THRESHOLD = 100
 
 # Origin point of the main coordinate system

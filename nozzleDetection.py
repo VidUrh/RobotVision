@@ -146,7 +146,7 @@ class NozzleDetector:
             # calculate the perimeter of the contour
             nozzleCircumference = cv2.arcLength(contour, True)
             # if the perimeter is greater than 20, the contour is a plastic object
-            if nozzleCircumference > MINIMUM_OBJECT_AREA and nozzleCircumference < MAXIMUM_OBJECT_AREA:
+            if nozzleCircumference > MINIMUM_OBJECT_ARC and nozzleCircumference < MAXIMUM_OBJECT_ARC:
                 filtered_contours.append(contour)
                 cv2.drawContours(self.image, contours, index, (0, 255, 0), 2)
         return filtered_contours
