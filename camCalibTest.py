@@ -16,7 +16,7 @@ Sledi preverjanje ali so kvadrati pravilno označeni in ali so dimenzije praviln
 Na koncu vse dimenzije primerjamo in izračunamo napako med njimi.
 '''
 
-NUMBER_OF_IMAGES = 5 # Number of images to take for calibration
+NUMBER_OF_IMAGES = 1 # Number of images to take for calibration
 
 ####################################################################################################
 #       Zajemi sliko kamere
@@ -107,9 +107,6 @@ def findSquares(sharpen, image):
     # Threshold and morph close
     thresh = cv2.threshold(sharpen, 200, 255, cv2.THRESH_BINARY)[1]
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
-    close = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
-
     # Find contours and filter using threshold area, start in top left corner
     cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
@@ -193,12 +190,6 @@ def main():
         result['image'] = i # Add image number to results
         resultsUndistorted = resultsUndistorted.append(result, ignore_index=True)
 
-        if i == 0:
-            # Show image
-            showImage('Original', image, 0)
-            showImage('Distorted', imageDistorted, 0)
-            showImage('Undistorted', imageUndistorted, 0)
-            cv2.waitKey(0)
 
     # Calculate average error for each square place
     # square place can differ for 20 pixel
@@ -230,6 +221,11 @@ def main():
     print("Error Distorted: ", errorDistorted)
     print("Error Undistorted: ", errorUndistorted)
     
+    # Show image
+    showImage('Original', image, 0)
+    showImage('Distorted', imageDistorted, 0)
+    showImage('Undistorted', imageUndistorted, 0)
+    cv2.waitKey(0)
 
 if __name__ == "__main__":
     main()
