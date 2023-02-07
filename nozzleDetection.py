@@ -70,7 +70,7 @@ class NozzleDetector:
         return None
 
     def setupCamera(self):
-        self.cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
         self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
         self.cam.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
