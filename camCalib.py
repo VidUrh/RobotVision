@@ -18,7 +18,7 @@ CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 ####################################################################################################################################################################
 
 def setupCamera():
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
     cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
     cap.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
