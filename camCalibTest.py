@@ -3,6 +3,8 @@ import logging
 from parameters import *
 import numpy as np
 import pandas as pd
+import pickle
+import time
 
 '''
 Ta skripta je namenjena za testiranje kamere in njene kalibracije.
@@ -21,12 +23,13 @@ Na koncu vse dimenzije primerjamo in izračunamo napako med njimi.
 ####################################################################################################
 #       Zajemi sliko kamere
 ####################################################################################################
-def getCameraImage():
+def getImage():
     cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
     cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
     cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
-    cam.set(cv2.CAP_PROP_EXPOSURE, -5)
+    cam.set(cv2.CAP_PROP_EXPOSURE, -8)
+    time.sleep(1)
 
     ret, image = cam.read()
     if not ret:
@@ -36,9 +39,28 @@ def getCameraImage():
     return image
 
 ####################################################################################################
+#       Undistort slike kamere
+####################################################################################################
+def undistortImage(image):
+    # Read camera calibration data
+    with open(CALIBRATION_DATA_PATH, 'rb') as calibrationFile:
+        data = pickle.load(calibrationFile)
+        cameraMatrix = data['cameraMatrix']
+        dist = data['dist']
+        rvecs = data['rvecs']
+        tvecs = data['tvecs']
+        newcameramtx, roi = cv2.getOptimalNewCameraMatrix(
+        cameraMatrix, dist, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT), 1, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT))
+    
+    # Undistort image
+    imageUndistorted = cv2.undistort(image, newcameramtx, dist)
+    return imageUndistorted
+
+
+####################################################################################################
 #       Popravimo sliko kamere
 ####################################################################################################
-def correctCameraImage(image):
+def correctImage(image):
     # convert image to grayscale
     imageGray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     #cv2.imshow('imageGray', imageGray)
@@ -85,7 +107,7 @@ def findSquares(sharpen, image):
                 
                 # Izračunamo napako med dimenzijami
                 error = squareSize[0] - squareSize[1]
-                error = round(error,2)
+                error = abs(round(error,2))
 
                 # Zaokroži pozicijo kvadrata na 0 decimalk
                 squarePlace = (round(squarePlace[0],0), round(squarePlace[1],0))
@@ -122,9 +144,10 @@ def findSquares(sharpen, image):
 ####################################################################################################
 #       Prikaz slike
 ####################################################################################################
-def showImage(image):
-    cv2.imshow('image', image)
-    cv2.waitKey(0)
+def showImage(name, image, wait=0):
+    cv2.imshow(name, image)
+    if wait == 1:
+        cv2.waitKey(0)
 
 ####################################################################################################
 #       Izračun napake med dimenzijami
@@ -140,28 +163,61 @@ cv2.destroyAllWindows()
 #       MAIN
 ####################################################################################################
 def main():
-    # Tabela za shranjevanje rezultatov
-    results = pd.DataFrame(columns=['image','squarePlace','squareSize','error'])
+    resultsDistorted = pd.DataFrame(columns=['image','squarePlace','squareSize','error']) # Table for results
+    resulrUndistorted = pd.DataFrame(columns=['image','squarePlace','squareSize','error']) # Table for results
+    for i in range(0, 5):
+        # Get image
+        image = getImage()
+        imageDistorted = image.copy()
+        imageUndistorted = image.copy()
 
-    for i in range(0, 10):
-        image = getCameraImage()    # Zajemi sliko kamere
-        sharpen = correctCameraImage(image) # Popravimo sliko kamere
-        image, result = findSquares(sharpen, image) # Na sliki najdemo vse kvadrate in jih označimo
-        # Dodaj številko slike in rezultat v tabelo
-        result['image'] = i
-        results = results.append(result, ignore_index=True)
+        # Distorted image
+        sharpen = correctImage(imageDistorted) # Remove noise from image
+        imageDistorted, result = findSquares(sharpen, imageDistorted) # Na sliki najdemo vse kvadrate in jih označimo
+        
+        result['image'] = i # Add image number to results
+        resultsDistorted = resultsDistorted.append(result, ignore_index=True)
+
+        # Undistorted image
+        imageUndistorted = undistortImage(imageUndistorted)
+        sharpen = correctImage(imageUndistorted) # Remove noise from image
+        imageUndistorted, result = findSquares(sharpen, imageUndistorted) # Na sliki najdemo vse kvadrate in jih označimo
+        
+        result['image'] = i # Add image number to results
+        resulrUndistorted = resulrUndistorted.append(result, ignore_index=True)
+
+    # Show image
+    showImage('Original', image, 0)
+    showImage('Distorted', imageDistorted, 0)
+    showImage('Undistorted', imageUndistorted, 0)
 
     # Sortiraj po squarePlace
     # results = results.sort_values(by=['squarePlace'])
     # print(results)
 
-    # izračunaj povprečje napak za vsak kvadrat
-    meanSquareError = results.groupby(['squarePlace']).mean()
-    print(meanSquareError)
+    # Calculate average error for each square place
+    # square place can differ for 20 pixel
+    pixelDiff = 20
+    resultsDistorted['squarePlace'] = resultsDistorted['squarePlace'].apply(lambda x: (round(x[0]/pixelDiff)*pixelDiff, round(x[1]/pixelDiff)*pixelDiff))
+    resultsDistorted = resultsDistorted.groupby(['squarePlace']).mean()
+    resultsDistorted = resultsDistorted.reset_index()
+    print("Distorted")
+    print(resultsDistorted)
 
-    #showImage(image)    # Prikaz slike
+    resulrUndistorted['squarePlace'] = resulrUndistorted['squarePlace'].apply(lambda x: (round(x[0]/pixelDiff)*pixelDiff, round(x[1]/pixelDiff)*pixelDiff))
+    resulrUndistorted = resulrUndistorted.groupby(['squarePlace']).mean()
+    resulrUndistorted = resulrUndistorted.reset_index()
+    print("Undistorted")
+    print(resulrUndistorted)
 
-        
+    # Calculate average error in undistorted image and distorted image and compare them
+    errorDistorted = resultsDistorted['error'].mean()
+    errorUndistorted = resulrUndistorted['error'].mean()
+    print("Error Distorted: ", errorDistorted)
+    print("Error Undistorted: ", errorUndistorted)
+
+    cv2.waitKey(0)
+
 
 if __name__ == "__main__":
     main()
