@@ -1,0 +1,1 @@
+cmd /k "..\RobotVision\.venv\Scripts\activate.bat"

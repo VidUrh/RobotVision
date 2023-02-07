@@ -1,8 +1,8 @@
 :: Create venv ::
-python -m venv .venv
+python -m venv ..\RobotVision\.venv
 
 :: Activate venv ::
-CALL .\.venv\Scripts\activate.bat
+cmd /k "..\RobotVision\.venv\Scripts\activate.bat"
 
 :: Upgrade pip ::
 python -m pip install --upgrade pip
