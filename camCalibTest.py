@@ -15,27 +15,61 @@ Izračunamo dimenzije vseh kvadratov in jih izpišemo na sliki.
 Sledi preverjanje ali so kvadrati pravilno označeni in ali so dimenzije pravilne (kvadrati imajo znane dimenzije).
 Na koncu vse dimenzije primerjamo in izračunamo napako med njimi.
 '''
-####################################################################################################
-#       Naložimo kalibracijske parametre
-####################################################################################################
 
+NUMBER_OF_IMAGES = 1 # Number of images to take for calibration
 
 ####################################################################################################
 #       Zajemi sliko kamere
 ####################################################################################################
 def getImage():
-    cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    # Initialize camera
+    cam = cv2.VideoCapture(cv2.CAP_DSHOW)
+    # disable all possible auto settings
+    
+    cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+
+
     cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
     cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
-    cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
+    time.sleep(2)
+    cam.set(cv2.CAP_PROP_EXPOSURE, -1)
+    time.sleep(2)
+    cam.set(cv2.CAP_PROP_EXPOSURE, -5)
+    time.sleep(2)
     cam.set(cv2.CAP_PROP_EXPOSURE, -8)
-    time.sleep(1)
+
+    # print camera settings
+    print("Camera settings:")
+    print("Frame width: ", cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+    print("Frame height: ", cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    print("Auto exposure: ", cam.get(cv2.CAP_PROP_AUTO_EXPOSURE))
+    print("Auto white balance: ", cam.get(cv2.CAP_PROP_AUTO_WB))
+    print("Auto focus: ", cam.get(cv2.CAP_PROP_AUTOFOCUS))
+    print("Auto bandwidth calculation: ", cam.get(cv2.CAP_PROP_XI_AUTO_BANDWIDTH_CALCULATION))
+    print("Auto white balance: ", cam.get(cv2.CAP_PROP_XI_AUTO_WB))
+    print("Auto step: ", cam.get(cv2.MAT_AUTO_STEP))
+    print("White balance temperature: ", cam.get(cv2.CAP_PROP_WB_TEMPERATURE))
+    print("Exposure: ", cam.get(cv2.CAP_PROP_EXPOSURE))
+
 
     ret, image = cam.read()
     if not ret:
         logging.error("Could not read image from camera")
+        return None
     
-    cam.release()
+    return image
+
+# Get image from camera and save it
+def getImageSave(name):
+    image = getImage()
+    if image is None:
+        return None
+    cv2.imwrite(f"image{name}.jpg", image)
+    return image
+
+# load image from file
+def loadImage(name):
+    image = cv2.imread(f"image{name}.jpg")
     return image
 
 ####################################################################################################
@@ -149,23 +183,15 @@ def showImage(name, image, wait=0):
     if wait == 1:
         cv2.waitKey(0)
 
-####################################################################################################
-#       Izračun napake med dimenzijami
-####################################################################################################
-
-
-####################################################################################################
-#       Izpišemo rezultate
-####################################################################################################
-cv2.destroyAllWindows()
 
 ####################################################################################################
 #       MAIN
 ####################################################################################################
 def main():
     resultsDistorted = pd.DataFrame(columns=['image','squarePlace','squareSize','error']) # Table for results
-    resulrUndistorted = pd.DataFrame(columns=['image','squarePlace','squareSize','error']) # Table for results
-    for i in range(0, 5):
+    resultsUndistorted = pd.DataFrame(columns=['image','squarePlace','squareSize','error']) # Table for results
+    
+    for i in range(0, NUMBER_OF_IMAGES):
         # Get image
         image = getImage()
         imageDistorted = image.copy()
@@ -184,40 +210,44 @@ def main():
         imageUndistorted, result = findSquares(sharpen, imageUndistorted) # Na sliki najdemo vse kvadrate in jih označimo
         
         result['image'] = i # Add image number to results
-        resulrUndistorted = resulrUndistorted.append(result, ignore_index=True)
+        resultsUndistorted = resultsUndistorted.append(result, ignore_index=True)
 
-    # Show image
-    showImage('Original', image, 0)
-    showImage('Distorted', imageDistorted, 0)
-    showImage('Undistorted', imageUndistorted, 0)
-
-    # Sortiraj po squarePlace
-    # results = results.sort_values(by=['squarePlace'])
-    # print(results)
+        if i == 0:
+            # Show image
+            showImage('Original', image, 0)
+            showImage('Distorted', imageDistorted, 0)
+            showImage('Undistorted', imageUndistorted, 0)
+            cv2.waitKey(0)
 
     # Calculate average error for each square place
     # square place can differ for 20 pixel
     pixelDiff = 20
-    resultsDistorted['squarePlace'] = resultsDistorted['squarePlace'].apply(lambda x: (round(x[0]/pixelDiff)*pixelDiff, round(x[1]/pixelDiff)*pixelDiff))
-    resultsDistorted = resultsDistorted.groupby(['squarePlace']).mean()
-    resultsDistorted = resultsDistorted.reset_index()
-    print("Distorted")
-    print(resultsDistorted)
+    resultsDistortedAERR = resultsDistorted
+    resultsDistortedAERR['squarePlaceRange'] = resultsDistorted['squarePlace'].apply(lambda x: (round(x[0]/pixelDiff)*pixelDiff, round(x[1]/pixelDiff)*pixelDiff))
+    resultsDistortedAERR['distanceFromCenter'] = resultsDistorted['squarePlace'].apply(lambda x: abs(x[0]-CAMERA_FRAME_WIDTH/2) + abs(x[1]-CAMERA_FRAME_HEIGHT/2))
 
-    resulrUndistorted['squarePlace'] = resulrUndistorted['squarePlace'].apply(lambda x: (round(x[0]/pixelDiff)*pixelDiff, round(x[1]/pixelDiff)*pixelDiff))
-    resulrUndistorted = resulrUndistorted.groupby(['squarePlace']).mean()
-    resulrUndistorted = resulrUndistorted.reset_index()
-    print("Undistorted")
-    print(resulrUndistorted)
+    resultsUndistortedAERR = resultsUndistorted
+    resultsUndistortedAERR['squarePlaceRange'] = resultsUndistorted['squarePlace'].apply(lambda x: (round(x[0]/pixelDiff)*pixelDiff, round(x[1]/pixelDiff)*pixelDiff))
+    resultsUndistortedAERR['distanceFromCenter'] = resultsUndistorted['squarePlace'].apply(lambda x: abs(x[0]-CAMERA_FRAME_WIDTH/2) + abs(x[1]-CAMERA_FRAME_HEIGHT/2))
+
+
+    resultsDistortedAERR = resultsDistortedAERR.groupby(['squarePlaceRange'])
+    resultsDistortedAERR = resultsDistortedAERR.mean()
+
+    resultsUndistortedAERR = resultsUndistortedAERR.groupby(['squarePlaceRange'])
+    resultsUndistortedAERR = resultsUndistortedAERR.mean()
+
+    print("\nDistorted AERR")
+    print(resultsDistortedAERR)
+
+    print("\nUndistorted AERR")
+    print(resultsUndistortedAERR)
 
     # Calculate average error in undistorted image and distorted image and compare them
     errorDistorted = resultsDistorted['error'].mean()
-    errorUndistorted = resulrUndistorted['error'].mean()
+    errorUndistorted = resultsUndistorted['error'].mean()
     print("Error Distorted: ", errorDistorted)
     print("Error Undistorted: ", errorUndistorted)
-
-    cv2.waitKey(0)
-
 
 if __name__ == "__main__":
     main()
