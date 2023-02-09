@@ -74,7 +74,7 @@ def takeCalibrationImages(camera):
         ret, calibrationImage = camera.read()
         if not ret:
             print("Unable to capture video")
-            continue
+            break
         gray = cv2.cvtColor(calibrationImage, cv2.COLOR_BGR2GRAY)
         image, board_detected = detectCheckerBoard(
             calibrationImage, gray, CRITERIA, CALIBRATION_SQUARES)
@@ -84,9 +84,11 @@ def takeCalibrationImages(camera):
 
         cv2.imshow("Calibration image", calibrationImage)
 
-        key = cv2.waitKey(1)
+        key = cv2.waitKey(0)
         if key == ord("q"):
             break
+        if key == ord("n"):
+            continue
         if key == ord("s") and board_detected == True:
             # storing the checker board image
             cv2.imwrite(f"{CALIBRATION_IMAGE_DIR}/image{n}.png", gray)
