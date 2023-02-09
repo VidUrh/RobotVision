@@ -1,11 +1,7 @@
 from xarm.wrapper import XArmAPI
-# import parameters from clean folder
-import sys
-sys.path.insert(0, '../RobotVision/Clean')
 from parameters import *
-# adding clean folder to the system path
+import tkinter
 
-CALIBRATION_SQUARE_SIZE
 import time
 
 robot = XArmAPI(ROBOT_IP)
@@ -17,13 +13,18 @@ time.sleep(1)
 
 timeout = 2
 rspeed = 70
-squareSize = CALIBRATION_SQUARE_SIZE # in mm
 
 x = 400
 y = 0
 rZ = 2 # in mm negative value is up
 
-robot.set_position(x=x, y =y,z = rZ, speed=rspeed, wait=True)
+# Make gui for user to set robot to base position
+
+
+# Start calibration
+while input("Set coordinate system of robot to base? Y/n: ") != "y":
+    pass
+robot.set_position(x = 300, y = 0,z = rZ, speed=rspeed, wait=True)
 
 
 def setXYOffset(x, y, rZ, rspeed):
@@ -92,7 +93,7 @@ def setRotation(x, y, rZ, rspeed):
     # move robot in x direction
     robot.set_position(x = x, y = y, z = rZ, speed=rspeed, wait=True)
     for i in range (1, 6):
-        robot.set_position(x = x+(i*squareSize), y = y, z = rZ, speed=rspeed, wait=True)
+        robot.set_position(x = x+(i*CALIBRATION_SQUARE_SIZE), y = y, z = rZ, speed=rspeed, wait=True)
     print(robot.get_position())
     robot.set_position(x = x, y = y, z = rZ, speed=rspeed, wait=True)
 
@@ -101,7 +102,7 @@ def checkRotation():
     while 1:
         robot.set_position(x = 0, y = 0, z = -2, speed=rspeed, wait=True)
         for i in range (1, 6):
-            robot.set_position(x = (i*squareSize), y = 0, z = rZ, speed=rspeed, wait=True)
+            robot.set_position(x = (i*CALIBRATION_SQUARE_SIZE), y = 0, z = rZ, speed=rspeed, wait=True)
         print(robot.get_position())
         robot.set_position(x = 0, y = 0, z = -2, speed=rspeed, wait=True)
         if input("Will finish? Y/n: ") == "y":
@@ -120,7 +121,7 @@ if __name__ == "__main__":
 #         robot.set_position(x = x, y = y, z = rZ, yaw = yaw, speed=rspeed, is_radian = True, wait=True)
 #         # move robot in x direction
 #         for i in range (1, 6):
-#             robot.set_position(x = x+(i*squareSize), y = y, z = rZ, yaw = yaw, speed=rspeed, is_radian=True, wait=True)
+#             robot.set_position(x = x+(i*CALIBRATION_SQUARE_SIZE), y = y, z = rZ, yaw = yaw, speed=rspeed, is_radian=True, wait=True)
 #         print(robot.get_position())
 #         robot.set_position(x = x, y = y, z = rZ, yaw = yaw, speed=rspeed, is_radian=True, wait=True)
         
