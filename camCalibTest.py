@@ -27,7 +27,7 @@ def getImage():
     # disable all possible auto settings
     
     cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
-    cam.set(cv2.CAP_PROP_EXPOSURE, (CAMERA_EXPOSURE-1))
+    cam.set(cv2.CAP_PROP_EXPOSURE, -4)#(CAMERA_EXPOSURE-1))
     cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
     cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
 
@@ -42,7 +42,7 @@ def getImage():
     # print("Auto white balance: ", cam.get(cv2.CAP_PROP_XI_AUTO_WB))
     # print("Auto step: ", cam.get(cv2.MAT_AUTO_STEP))
     # print("White balance temperature: ", cam.get(cv2.CAP_PROP_WB_TEMPERATURE))
-    # print("Exposure: ", cam.get(cv2.CAP_PROP_EXPOSURE))
+    print("Exposure: ", cam.get(cv2.CAP_PROP_EXPOSURE))
 
     ret, image = cam.read()
     if not ret:
@@ -105,7 +105,9 @@ def correctImage(image):
 def findSquares(sharpen, image):
     results = pd.DataFrame(columns=['squarePlace','squareSize','error'])
     # Threshold and morph close
-    thresh = cv2.threshold(sharpen, 200, 255, cv2.THRESH_BINARY)[1]
+    thresh = cv2.threshold(sharpen, 170, 255, cv2.THRESH_BINARY)[1]
+    cv2.imshow("thresh", thresh)
+
 
     # Find contours and filter using threshold area, start in top left corner
     cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -189,6 +191,13 @@ def main():
         
         result['image'] = i # Add image number to results
         resultsUndistorted = resultsUndistorted.append(result, ignore_index=True)
+
+        # Show image
+        if NUMBER_OF_IMAGES == 1:
+            showImage('Original', image, 0)
+            showImage('Distorted', imageDistorted, 0)
+            showImage('Undistorted', imageUndistorted, 0)
+            cv2.waitKey(0)
 
 
     # Calculate average error for each square place
