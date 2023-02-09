@@ -5,8 +5,8 @@ import math
 CAMERA_FRAME_WIDTH = 1280
 CAMERA_FRAME_HEIGHT = 720
 CAMERA_FRAME_SIZE = (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT)
-CAMERA_PORT = 1
-CAMERA_EXPOSURE = -5
+CAMERA_PORT = 0
+CAMERA_EXPOSURE = -7
 
 ####################################################################################################################################################################
 #      CALIBRATION PARAMETERS                                                                                                                                      #
