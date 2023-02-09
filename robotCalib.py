@@ -76,9 +76,17 @@ class window:
         self.point3 = tk.Button(self.master, text="Point 3", background="#43b0f1", command=self.storePoint3)
         self.point3.grid(row=4, column=9)
 
+        # add terminal for user to see what is happening
+        self.terminal = tk.Text(self.master, height=10, width=10, bg="#bfecff", font=("Helvetica", 13))
+        self.terminal.grid(row=0, column=2, columnspan=7, rowspan=5, sticky="nsew")
+
+    def printTerminal(self, text):
+        self.terminal.insert(tk.END, text)
+        self.terminal.see(tk.END)
 
     def start(self):
         print("Start")
+        self.printTerminal("Start robot calibration\n")
         pass
 
     def storePoint1(self):
@@ -113,6 +121,7 @@ class window:
 
     def setRotation(self):
         print("Set rotation")
+        self.printTerminal("Set rotation\n")
         pass
 
     def setOrigin(self):
@@ -253,9 +262,9 @@ def checkRotation():
             break
 
 def main():
-    logger = logging.getLogger()
-    robot = vr.Robot(ROBOT_IP, logger)
-    calibWindow = window(tk.Tk(), robot)
+    #logger = logging.getLogger()
+    #robot = vr.Robot(ROBOT_IP, logger)
+    calibWindow = window(tk.Tk(), robot=None)
     # open window
     calibWindow.master.mainloop()
 
