@@ -91,22 +91,27 @@ class window:
         self.ySlider = tk.Scale(self.master, from_=250, to=-250, length=1000, orient=tk.HORIZONTAL,
                                 resolution=SLIDER_RESOLUTION, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
         self.ySlider.grid(row=9, column=0, columnspan=10)
+
+        # add slider for z axis on 1 decimal point
+        self.zSlider = tk.Scale(self.master, from_=200, to=-2, length=200, orient=tk.VERTICAL,
+                                resolution=SLIDER_RESOLUTION, label="Z (mm)", command=self.moveZ, bg="#bfecff")
+        self.zSlider.grid(row=0, column=9, rowspan=7, columnspan=2)
         
         # make button for 1. calibration point on right side
         self.point1 = tk.Button(self.master, text="Point 1", bg="#43b0f1", command=self.storePoint1)
-        self.point1.grid(row=2, column=9)
+        self.point1.grid(row=2, column=8, sticky="E")
 
         # add button for 2. calibration point on right side
         self.point2 = tk.Button(self.master, text="Point 2", background="#43b0f1", command=self.storePoint2)
-        self.point2.grid(row=3, column=9)
+        self.point2.grid(row=3, column=8, sticky="E")
 
         # add button for 3. calibration point on right side
         self.point3 = tk.Button(self.master, text="Point 3", background="#43b0f1", command=self.storePoint3)
-        self.point3.grid(row=4, column=9)
+        self.point3.grid(row=4, column=8, sticky="E")
 
         # add terminal for user to see what is happening
-        self.terminal = tk.Text(self.master, height=10, width=10, bg="#bfecff", font=("Helvetica", 13))
-        self.terminal.grid(row=0, column=2, columnspan=7, rowspan=5, sticky="nsew")
+        self.terminal = tk.Text(self.master, height=10, width=55, bg="#bfecff", font=("Helvetica", 13))
+        self.terminal.grid(row=0, column=2, columnspan=7, rowspan=5, sticky="nsw")
 
         self.refreshSlider()
     
@@ -114,6 +119,7 @@ class window:
         self.robotPosition = self.robot.getPosition()
         self.xSlider.set(self.robotPosition[0])
         self.ySlider.set(self.robotPosition[1])
+        self.zSlider.set(self.robotPosition[2])
         print(self.robotPosition)
 
     def printTerminal(self, text):
@@ -145,8 +151,8 @@ class window:
         # print start coordinates
         self.printTerminal("Start coordinates: X: "+str(self.START_X)+" Y: "+str(self.START_Y)+" Z: "+str(self.START_Z)+"\n")
         # set slider to start coordinates
-        self.xSlider.set(self.START_X)
-        self.ySlider.set(self.START_Y)
+        #self.xSlider.set(self.START_X)
+        #self.ySlider.set(self.START_Y)
         # self.robot.move(z=START_Z, speed=200, wait=True)
         # move robot to start coordinates in z axis
         pass
@@ -174,14 +180,18 @@ class window:
         pass
 
 
-
     def moveX(self, value):
-        self.robot.move(x=value, z=START_Z, speed=200, wait=False)
+        self.robot.move(x=value, speed=200, wait=False)
         print(value)
         pass
 
     def moveY(self, value):
         self.robot.move(y=value, speed=200, wait=False)
+        print(value)
+        pass
+
+    def moveZ(self, value):
+        self.robot.move(z=value, speed=200, wait=False)
         print(value)
         pass
 
