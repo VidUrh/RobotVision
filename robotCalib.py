@@ -55,6 +55,10 @@ class window:
         self.btStart = tk.Button(self.master, text="Start", bg="#e2ac4d", font=("Helvetice", 11), command=self.start)
         self.btStart.grid(row=1, column=0, sticky="nsew")
 
+        # add home button
+        self.btHome = tk.Button(self.master, text="Home", bg="#e2ac4d", font=("Helvetic", 11), command=self.home)
+        self.btHome.grid(row=1, column=1, sticky="nsew")
+
         # add check button
         self.btCheck = tk.Button(self.master, text="Check", bg="#e2ac4d", font=("Helvetic", 11), command=self.check)
         self.btCheck.grid(row=2, column=1, sticky="nsew")
@@ -77,12 +81,12 @@ class window:
 
         # add slider for x axis on 1 decimal point
         self.xSlider = tk.Scale(self.master, from_=150, to=400, length=1000, orient=tk.HORIZONTAL,  
-                                resolution=0.1, label="X axis (mm)", command=self.moveX, bg="#bfecff")
+                                resolution=0.5, label="X axis (mm)", command=self.moveX, bg="#bfecff")
         self.xSlider.grid(row=8, column=0, columnspan=10)
 
         # add slider for y axis on 1 decimal point
         self.ySlider = tk.Scale(self.master, from_=250, to=-250, length=1000, orient=tk.HORIZONTAL,
-                                resolution=0.1, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
+                                resolution=0.5, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
         self.ySlider.grid(row=9, column=0, columnspan=10)
         
         # make button for 1. calibration point on right side
@@ -141,6 +145,11 @@ class window:
         # move robot to start coordinates in z axis
         pass
 
+    def home(self):
+        self.printTerminal("Move robot to home position\n")
+        self.robot.home()
+        pass
+
     def storePoint1(self):
         self.storePoint(1)
 
@@ -158,11 +167,7 @@ class window:
         self.setRotationIter = 0
         pass
 
-    def move(sef, value):
-        print(value)
-        pass
 
-    # Check if last value is changed more than 2s ago
 
     def moveX(self, value):
         self.robot.move(x=value, z=START_Z, speed=200, wait=False)
