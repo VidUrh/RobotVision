@@ -77,12 +77,12 @@ class window:
 
         # add slider for x axis on 1 decimal point
         self.xSlider = tk.Scale(self.master, from_=150, to=400, length=1000, orient=tk.HORIZONTAL,  
-                                resolution=0.5, label="X axis (mm)", command=self.moveX, bg="#bfecff")
+                                resolution=0.1, label="X axis (mm)", command=self.moveX, bg="#bfecff")
         self.xSlider.grid(row=8, column=0, columnspan=10)
 
         # add slider for y axis on 1 decimal point
         self.ySlider = tk.Scale(self.master, from_=250, to=-250, length=1000, orient=tk.HORIZONTAL,
-                                resolution=0.5, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
+                                resolution=0.1, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
         self.ySlider.grid(row=9, column=0, columnspan=10)
         
         # make button for 1. calibration point on right side
@@ -101,14 +101,11 @@ class window:
         self.terminal = tk.Text(self.master, height=10, width=10, bg="#bfecff", font=("Helvetica", 13))
         self.terminal.grid(row=0, column=2, columnspan=7, rowspan=5, sticky="nsew")
 
-        self.refreshSlider()
-
-    
-    def refreshSlider(self):
         self.robotPosition = self.robot.getPosition()
         self.xSlider.set(self.robotPosition[0])
         self.ySlider.set(self.robotPosition[1])
         print(self.robotPosition)
+    
 
     def printTerminal(self, text):
         self.terminal.insert(tk.END, text)
@@ -135,7 +132,6 @@ class window:
         #Move robot in zero position
         self.printTerminal("Move robot to zero position\n")
         self.robot.home()
-        self.refreshSlider()
         # print start coordinates
         self.printTerminal("Start coordinates: X: "+str(self.START_X)+" Y: "+str(self.START_Y)+" Z: "+str(self.START_Z)+"\n")
         # set slider to start coordinates
@@ -167,13 +163,14 @@ class window:
         pass
 
     # Check if last value is changed more than 2s ago
+
     def moveX(self, value):
-        self.robot.move(x=value, z=START_Z, speed=100, wait=False)
+        self.robot.move(x=value, z=START_Z, speed=200, wait=False)
         print(value)
         pass
 
     def moveY(self, value):
-        self.robot.move(y=value, z=START_Z, speed=100, wait=False)
+        self.robot.move(y=value, speed=200, wait=False)
         print(value)
         pass
 
