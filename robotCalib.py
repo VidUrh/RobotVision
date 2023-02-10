@@ -9,9 +9,12 @@ import time
 timeout = 2
 rspeed = 70
 
+# Constants
 START_X = 400
 START_Y = 0
 START_Z = 3 # in mm negative value is up
+
+SLIDER_RESOLUTION = 0.5 # in mm
 
 # Make gui for user to set robot to base position
 # Make window for user to set robot to base position with buttons and sliders in thread
@@ -81,12 +84,12 @@ class window:
 
         # add slider for x axis on 1 decimal point
         self.xSlider = tk.Scale(self.master, from_=150, to=400, length=1000, orient=tk.HORIZONTAL,  
-                                resolution=0.5, label="X axis (mm)", command=self.moveX, bg="#bfecff")
+                                resolution=SLIDER_RESOLUTION, label="X axis (mm)", command=self.moveX, bg="#bfecff")
         self.xSlider.grid(row=8, column=0, columnspan=10)
 
         # add slider for y axis on 1 decimal point
         self.ySlider = tk.Scale(self.master, from_=250, to=-250, length=1000, orient=tk.HORIZONTAL,
-                                resolution=0.5, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
+                                resolution=SLIDER_RESOLUTION, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
         self.ySlider.grid(row=9, column=0, columnspan=10)
         
         # make button for 1. calibration point on right side
@@ -206,15 +209,15 @@ class window:
 
     def on_key_press_x(self, event):
         if event.keysym == "Down":
-            self.xSlider.set(self.xSlider.get() - 0.1)
+            self.xSlider.set(self.xSlider.get() - SLIDER_RESOLUTION)
         elif event.keysym == "Up":
-            self.xSlider.set(self.xSlider.get() + 0.1)
+            self.xSlider.set(self.xSlider.get() + SLIDER_RESOLUTION)
 
     def on_key_press_y(self, event):
         if event.keysym == "Left":
-            self.ySlider.set(self.ySlider.get() + 0.1)
+            self.ySlider.set(self.ySlider.get() + SLIDER_RESOLUTION)
         elif event.keysym == "Right":
-            self.ySlider.set(self.ySlider.get() - 0.1)
+            self.ySlider.set(self.ySlider.get() - SLIDER_RESOLUTION)
 
     def on_closing(self):
         self.master.destroy()
