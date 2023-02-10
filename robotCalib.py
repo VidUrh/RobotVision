@@ -222,33 +222,6 @@ class window:
     def on_closing(self):
         self.master.destroy()
 
-    class RoundButton(tk.Canvas):
-        def __init__(self, parent, text, command, bg, fg, activebackground, font, width, height, **kwargs):
-            tk.Canvas.__init__(self, parent, bg=bg, width=width, height=height, **kwargs)
-            self.parent = parent
-            self.text = text
-            self.command = command
-            self.bg = bg
-            self.fg = fg
-            self.activebackground = activebackground
-            self.font = font
-            self.width = width
-            self.height = height
-            self.bind("<1>", self.click)
-            self._draw_button()
-
-        def draw_button(self):
-            x0 = self.width / 2
-            y0 = self.height / 2
-            r = min(self.width, self.height) / 2 - 5
-            self.create_oval(x0 - r, y0 - r, x0 + r, y0 + r, fill=self.bg, width=0)
-            self.create_text(x0, y0, text=self.text, font=self.font, fill=self.fg)
-
-        def click(self, event):
-            self.config(bg=self.activebackground)
-            self.command()
-        
-
 
 # Start calibration
 # while input("Set coordinate system of robot to base? Y/n: ") != "y":
