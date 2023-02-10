@@ -27,6 +27,7 @@ class window:
         self.setRotationIter = 0 # number of times set rotation button is pressed
 
         self.CLICK_XZ = 0
+        self.COORD_SYSTEM = 0 # 0 for base, 1 for user
 
         # set start coordinates
         self.START_X = START_X
@@ -142,6 +143,7 @@ class window:
         self.START_X = 350
         self.START_Y = 0
         self.START_Z = 3
+        self.COORD_SYSTEM = 0
         self.printTerminal("Base coord\n")
 
     def userCoord(self):
@@ -156,6 +158,7 @@ class window:
         self.START_X = -150
         self.START_Y = -150
         self.START_Z = -3
+        self.COORD_SYSTEM = 1
         self.printTerminal("User coord\n")
 
     def start(self):
@@ -285,10 +288,16 @@ class window:
             self.ySlider.set(self.ySlider.get() - SLIDER_RESOLUTION)
 
     def on_key_press_z(self, event):
-        if event.keysym == "Up":
-            self.zSlider.set(self.zSlider.get() + 0.1)
-        elif event.keysym == "Down":
-            self.zSlider.set(self.zSlider.get() - 0.1)
+        if self.COORD_SYSTEM == 0:
+            if event.keysym == "Up":
+                self.zSlider.set(self.zSlider.get() + 0.1)
+            elif event.keysym == "Down":
+                self.zSlider.set(self.zSlider.get() - 0.1)
+        elif self.COORD_SYSTEM == 1:
+            if event.keysym == "Up":
+                self.zSlider.set(self.zSlider.get() - 0.1)
+            elif event.keysym == "Down":
+                self.zSlider.set(self.zSlider.get() + 0.1)
 
     def clickX(self, event):
         self.CLICK_XZ = 0 # 0 = button for x
