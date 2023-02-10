@@ -133,12 +133,12 @@ class window:
     def baseCoord(self):
         self.btBaseCoord.config(relief=tk.SUNKEN)
         self.btUserCoord.config(relief=tk.RAISED)
-        self.xSlider.config(from_=80, to=400)
-        self.ySlider.config(from_=250, to=-250)
-        self.zSlider.config(from_=100, to=-2)
         self.xSlider.set(self.robot.getPosition()[0])
         self.ySlider.set(self.robot.getPosition()[1])
         self.zSlider.set(self.robot.getPosition()[2])
+        self.xSlider.config(from_=80, to=400)
+        self.ySlider.config(from_=250, to=-250)
+        self.zSlider.config(from_=100, to=-2)
         self.START_X = 350
         self.START_Y = 0
         self.START_Z = 3
@@ -147,14 +147,14 @@ class window:
     def userCoord(self):
         self.btUserCoord.config(relief=tk.SUNKEN)
         self.btBaseCoord.config(relief=tk.RAISED)
-        self.xSlider.config(from_=-100, to=150)
-        self.ySlider.config(from_=-500, to=500)
-        self.zSlider.config(from_=-100, to=100)
         self.xSlider.set(self.robot.getPosition()[0])
         self.ySlider.set(self.robot.getPosition()[1])
         self.zSlider.set(self.robot.getPosition()[2])
-        self.START_X = 0
-        self.START_Y = 0
+        self.xSlider.config(from_=-300, to=150)
+        self.ySlider.config(from_=-500, to=500)
+        self.zSlider.config(from_=-100, to=100)
+        self.START_X = -150
+        self.START_Y = -150
         self.START_Z = -3
         self.printTerminal("User coord\n")
 
@@ -238,7 +238,6 @@ class window:
         self.robot.move(x = 0, y = 0, z = -5, speed=100, wait=True)
         for i in range(0, 6):
             self.robot.move(x = (self.x+(i*CALIBRATION_SQUARE_SIZE*1000)), y = self.y, z = self.z, speed=100, wait=True)
-            self.printTerminal("i: "+str(i)+" x: "+str(self.x+(i*CALIBRATION_SQUARE_SIZE))+" y: "+str(self.y)+"\n")
             time.sleep(1)
 
         self.robot.move(x = 0, y = 0, speed=100, wait=True)
@@ -246,7 +245,6 @@ class window:
 
         for i in range(1, 6):
             self.robot.move(x = self.x, y = (i*CALIBRATION_SQUARE_SIZE*1000), z = self.z, speed=100, wait=True)
-            self.printTerminal("i: "+str(i)+" x: "+str(self.x+(i*CALIBRATION_SQUARE_SIZE))+" y: "+str(self.y)+"\n")
             time.sleep(1)
 
         self.robot.move(x = 0, y = 0, speed=100, wait=True)
@@ -258,11 +256,10 @@ class window:
         self.refreshSlider()
         self.printTerminal("Check origin\n")
 
-
     def setOrigin(self):
-        self.printTerminal("Robot coordinates: X: "+str(self.robot.getPosition()[0])+
-                           " Y: "+str(self.robot.getPosition()[1])+" Z: "+
-                           str(self.robot.getPosition()[2])+"\n")
+        self.printTerminal("Robot coordinates: X: "+str(-self.robot.getPosition()[0])+
+                           " Y: "+str(-self.robot.getPosition()[1])+" Z: "+
+                           str(-self.robot.getPosition()[2])+"\n")
         pass
 
     def done(self):
