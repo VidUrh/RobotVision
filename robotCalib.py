@@ -78,11 +78,11 @@ class window:
 
         # add set origin button
         self.btSetOrigin = tk.Button(self.master, text="Set origin", bg="#e2ac4d", font=("Helvetic", 11), command=self.setOrigin)
-        self.btSetOrigin.grid(row=4, column=0, sticky="nsew")
+        self.btSetOrigin.grid(row=3, column=0, sticky="nsew")
 
         # add done button
         self.btDone = tk.Button(self.master, text="done", bg="#e2ac4d", font=("Helvetica", 11), command=self.done)
-        self.btDone.grid(row=4, column=1, sticky="nsew")
+        self.btDone.grid(row=4, column=0, sticky="nsew")
 
         # add slider for x axis on 1 decimal point
         self.xSlider = tk.Scale(self.master, from_=1000, to=-1000, length=1000, orient=tk.HORIZONTAL,  
@@ -147,7 +147,7 @@ class window:
     def userCoord(self):
         self.btUserCoord.config(relief=tk.SUNKEN)
         self.btBaseCoord.config(relief=tk.RAISED)
-        self.xSlider.config(from_=-100, to=100)
+        self.xSlider.config(from_=-100, to=150)
         self.ySlider.config(from_=-500, to=500)
         self.zSlider.config(from_=-100, to=100)
         self.xSlider.set(self.robot.getPosition()[0])
@@ -214,23 +214,55 @@ class window:
 
     def check(self):
         # Check teach points
-        self.robot.move(x = self.points[0][0], y = self.points[0][1], z = self.points[0][2], speed=100, wait=True)
+        self.robot.move(x = self.points[0][0], y = self.points[0][1], 
+                        z = self.points[0][2], speed=100, wait=True)
         time.sleep(1)
-        self.robot.move(x = self.points[1][0], y = self.points[1][1], z = self.points[1][2], speed=100, wait=True)
+        self.robot.move(x = self.points[1][0], y = self.points[1][1], 
+                        z = self.points[1][2], speed=100, wait=True)
         time.sleep(1)
-        self.robot.move(x = self.points[2][0], y = self.points[2][1], z = self.points[2][2], speed=100, wait=True)
+        self.robot.move(x = self.points[2][0], y = self.points[2][1], 
+                        z = self.points[2][2], speed=100, wait=True)
         time.sleep(1)
 
     def setRotation(self):
-        self.rotationOffset = self.robot.calibrateUserOrientationOffset(self.points, mode=0, trust_ind=0, input_is_radian=False, return_is_radian=False)[1]
+        self.rotationOffset = self.robot.calibrateUserOrientationOffset(self.points, mode=0, 
+                                                                        trust_ind=0, input_is_radian=False, 
+                                                                        return_is_radian=False)[1]
         self.printTerminal("Rotation offset: "+str(self.rotationOffset)+"\n")
 
     def checkOrigin(self):
-        #self.robot.move(x = 0, y = 0, z = -2, speed=100, wait=True)
-        time.sleep(1)
+        # move robot in x direction
+        self.x = 0
+        self.y = 0
+        self.z = -2
+        self.robot.move(x = 0, y = 0, z = -5, speed=100, wait=True)
+        for i in range(0, 6):
+            self.robot.move(x = (self.x+(i*CALIBRATION_SQUARE_SIZE*1000)), y = self.y, z = self.z, speed=100, wait=True)
+            self.printTerminal("i: "+str(i)+" x: "+str(self.x+(i*CALIBRATION_SQUARE_SIZE))+" y: "+str(self.y)+"\n")
+            time.sleep(1)
+
+        self.robot.move(x = 0, y = 0, speed=100, wait=True)
+        time.sleep(3)
+
+        for i in range(1, 6):
+            self.robot.move(x = self.x, y = (i*CALIBRATION_SQUARE_SIZE*1000), z = self.z, speed=100, wait=True)
+            self.printTerminal("i: "+str(i)+" x: "+str(self.x+(i*CALIBRATION_SQUARE_SIZE))+" y: "+str(self.y)+"\n")
+            time.sleep(1)
+
+        self.robot.move(x = 0, y = 0, speed=100, wait=True)
+        self.robot.move(x = (6*CALIBRATION_SQUARE_SIZE*1000), y = (6*CALIBRATION_SQUARE_SIZE*1000), z = self.z, speed=100, wait=True)
+        time.sleep(2)
+
+        print(self.robot.getPosition())
+        self.robot.move(x = 0, y = 0, speed=100, wait=True)
+        self.refreshSlider()
+        self.printTerminal("Check origin\n")
+
 
     def setOrigin(self):
-        print("Set origin")
+        self.printTerminal("Robot coordinates: X: "+str(self.robot.getPosition()[0])+
+                           " Y: "+str(self.robot.getPosition()[1])+" Z: "+
+                           str(self.robot.getPosition()[2])+"\n")
         pass
 
     def done(self):

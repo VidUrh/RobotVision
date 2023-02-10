@@ -11,7 +11,7 @@ CAMERA_EXPOSURE = -7
 ####################################################################################################################################################################
 #      CALIBRATION PARAMETERS                                                                                                                                      #
 ####################################################################################################################################################################
-CALIBRATION_SQUARE_SIZE = 0.025
+CALIBRATION_SQUARE_SIZE = 0.025 # m (25 mm)
 CALIBRATION_SQUARE_WIDTH = 10
 CALIBRATION_SQUARE_HEIGHT = 7
 CALIBRATION_SQUARES = (CALIBRATION_SQUARE_WIDTH, CALIBRATION_SQUARE_HEIGHT)
