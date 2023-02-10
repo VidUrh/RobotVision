@@ -26,6 +26,8 @@ class window:
         self.points = [[], [], []]
         self.setRotationIter = 0 # number of times set rotation button is pressed
 
+        self.CLICK_XZ = 0
+
         # set start coordinates
         self.START_X = START_X
         self.START_Y = START_Y
@@ -43,8 +45,8 @@ class window:
 
         self.master.bind("<Left>", self.on_key_press_y)
         self.master.bind("<Right>", self.on_key_press_y)
-        self.master.bind("<Up>", self.on_key_press_x)
-        self.master.bind("<Down>", self.on_key_press_x)
+        self.master.bind("<Up>", self.on_key_press_x_or_z)
+        self.master.bind("<Down>", self.on_key_press_x_or_z)
 
         # add base coord buttons, stay in while user press again
         self.btBaseCoord = tk.Button(self.master, text="Base coord", bg="#43b0f1", font=("Helvetic", 11), command=self.baseCoord)
@@ -85,6 +87,7 @@ class window:
         # add slider for x axis on 1 decimal point
         self.xSlider = tk.Scale(self.master, from_=80, to=400, length=1000, orient=tk.HORIZONTAL,  
                                 resolution=SLIDER_RESOLUTION, label="X axis (mm)", command=self.moveX, bg="#bfecff")
+        self.xSlider.bind("<Button-1>", self.clickX)
         self.xSlider.grid(row=8, column=0, columnspan=10)
 
         # add slider for y axis on 1 decimal point
@@ -93,8 +96,9 @@ class window:
         self.ySlider.grid(row=9, column=0, columnspan=10)
 
         # add slider for z axis on 1 decimal point
-        self.zSlider = tk.Scale(self.master, from_=200, to=-2, length=200, orient=tk.VERTICAL,
-                                resolution=SLIDER_RESOLUTION, label="Z (mm)", command=self.moveZ, bg="#bfecff")
+        self.zSlider = tk.Scale(self.master, from_=100, to=-2, length=200, orient=tk.VERTICAL,
+                                resolution=0.1, label="Z (mm)", command=self.moveZ, bg="#bfecff")
+        self.zSlider.bind("<Button-1>", self.clickZ)
         self.zSlider.grid(row=0, column=9, rowspan=7, columnspan=2)
         
         # make button for 1. calibration point on right side
@@ -151,15 +155,16 @@ class window:
         # print start coordinates
         self.printTerminal("Start coordinates: X: "+str(self.START_X)+" Y: "+str(self.START_Y)+" Z: "+str(self.START_Z)+"\n")
         # set slider to start coordinates
-        #self.xSlider.set(self.START_X)
-        #self.ySlider.set(self.START_Y)
-        # self.robot.move(z=START_Z, speed=200, wait=True)
+        self.xSlider.set(self.START_X)
+        self.ySlider.set(self.START_Y)
+        self.zSlider.set(self.START_Z)
         # move robot to start coordinates in z axis
         pass
 
     def home(self):
         self.printTerminal("Move robot to home position\n")
         self.robot.home()
+        self.refreshSlider()
         pass
 
     def storePoint1(self):
@@ -220,6 +225,12 @@ class window:
         print(self.points)
         self.master.destroy()
 
+    def on_key_press_x_or_z(self, event):
+        if self.CLICK_XZ == 0:
+            self.on_key_press_x(event)
+        elif self.CLICK_XZ == 1:
+            self.on_key_press_z(event)
+
     def on_key_press_x(self, event):
         if event.keysym == "Down":
             self.xSlider.set(self.xSlider.get() - SLIDER_RESOLUTION)
@@ -231,6 +242,18 @@ class window:
             self.ySlider.set(self.ySlider.get() + SLIDER_RESOLUTION)
         elif event.keysym == "Right":
             self.ySlider.set(self.ySlider.get() - SLIDER_RESOLUTION)
+
+    def on_key_press_z(self, event):
+        if event.keysym == "Up":
+            self.zSlider.set(self.zSlider.get() + 0.1)
+        elif event.keysym == "Down":
+            self.zSlider.set(self.zSlider.get() - 0.1)
+
+    def clickX(self, event):
+        self.CLICK_XZ = 0 # 0 = button for x
+
+    def clickZ(self, event):
+        self.CLICK_XZ = 1 # 1 = button for z
 
     def on_closing(self):
         self.master.destroy()
