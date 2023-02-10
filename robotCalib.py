@@ -19,6 +19,10 @@ START_Z = 3 # in mm negative value is up
 class window:
     def __init__(self, master, robot):
         self.robot = robot
+        # make empty list for 3 list of coordinates
+        self.points = [[], [], []]
+        self.setRotationIter = 0 # number of times set rotation button is pressed
+
         self.master = master
         self.master.title("Robot calibration")
         self.master.geometry("1000x300")
@@ -29,22 +33,34 @@ class window:
             self.master.columnconfigure(i, weight=1)
             self.master.rowconfigure(i, weight=1)
 
-        self.master.bind("<Left>", self.on_key_press_x)
-        self.master.bind("<Right>", self.on_key_press_x)
-        self.master.bind("<Up>", self.on_key_press_y)
-        self.master.bind("<Down>", self.on_key_press_y)
+        self.master.bind("<Left>", self.on_key_press_y)
+        self.master.bind("<Right>", self.on_key_press_y)
+        self.master.bind("<Up>", self.on_key_press_x)
+        self.master.bind("<Down>", self.on_key_press_x)
 
-        self.label = tk.Label(self.master, text="Set robot default coordinate system to base", 
-                              fg="RED", font=("Helvetica", 11), bg="#bfecff")
-        self.label.grid(row=0, column=0, sticky="nsew")
+        # add base coord buttons, stay in while user press again
+        self.btBaseCoord = tk.Button(self.master, text="Base coord", bg="#43b0f1", font=("Helvetic", 11), command=self.baseCoord)
+        self.btBaseCoord.grid(row=0, column=1, sticky="nsew")
+
+        # add user coord buttons
+        self.btUserCoord = tk.Button(self.master, text="User coord", bg="#43b0f1", font=("Helvetic", 11), command=self.userCoord)
+        self.btUserCoord.grid(row=0, column=0, sticky="nsew")
 
         # add start button
         self.btStart = tk.Button(self.master, text="Start", bg="#e2ac4d", font=("Helvetice", 11), command=self.start)
         self.btStart.grid(row=1, column=0, sticky="nsew")
 
+        # add check button
+        self.btCheck = tk.Button(self.master, text="Check", bg="#e2ac4d", font=("Helvetic", 11), command=self.check)
+        self.btCheck.grid(row=2, column=1, sticky="nsew")
+
         # add set rotation button
         self.btSetRotation = tk.Button(self.master, text="Set rotation", bg="#e2ac4d", font=("Helvetic", 11), command=self.setRotation)
         self.btSetRotation.grid(row=2, column=0, sticky="nsew")
+
+        # add check origin button
+        self.btCheckOrigin = tk.Button(self.master, text="Check origin", bg="#e2ac4d", font=("Helvetic", 11), command=self.checkOrigin)
+        self.btCheckOrigin.grid(row=3, column=1, sticky="nsew")
 
         # add set origin button
         self.btSetOrigin = tk.Button(self.master, text="Set origin", bg="#e2ac4d", font=("Helvetic", 11), command=self.setOrigin)
@@ -55,12 +71,12 @@ class window:
         self.btCancel.grid(row=4, column=0, sticky="nsew")
 
         # add slider for x axis on 1 decimal point
-        self.xSlider = tk.Scale(self.master, from_=0, to=50, length=1000, orient=tk.HORIZONTAL,  
+        self.xSlider = tk.Scale(self.master, from_=150, to=400, length=1000, orient=tk.HORIZONTAL,  
                                 resolution=0.1, label="X axis (mm)", command=self.moveX, bg="#bfecff")
         self.xSlider.grid(row=8, column=0, columnspan=10)
 
         # add slider for y axis on 1 decimal point
-        self.ySlider = tk.Scale(self.master, from_=0, to=50, length=1000, orient=tk.HORIZONTAL,
+        self.ySlider = tk.Scale(self.master, from_=-250, to=250, length=1000, orient=tk.HORIZONTAL,
                                 resolution=0.1, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
         self.ySlider.grid(row=9, column=0, columnspan=10)
         
@@ -80,13 +96,37 @@ class window:
         self.terminal = tk.Text(self.master, height=10, width=10, bg="#bfecff", font=("Helvetica", 13))
         self.terminal.grid(row=0, column=2, columnspan=7, rowspan=5, sticky="nsew")
 
+        self.robotPosition = self.robot.getPosition()
+        self.xSlider.set(self.robotPosition[0])
+        self.ySlider.set(self.robotPosition[1])
+        print(self.robotPosition)
+
     def printTerminal(self, text):
         self.terminal.insert(tk.END, text)
         self.terminal.see(tk.END)
 
+    def baseCoord(self):
+        self.btBaseCoord.config(relief=tk.SUNKEN)
+        self.btUserCoord.config(relief=tk.RAISED)
+        self.printTerminal("Base coord\n")
+
+    def userCoord(self):
+        self.btUserCoord.config(relief=tk.SUNKEN)
+        self.btBaseCoord.config(relief=tk.RAISED)
+        self.printTerminal("User coord\n")
+
     def start(self):
-        print("Start")
         self.printTerminal("Start robot calibration\n")
+        #Move robot in zero position
+        self.printTerminal("Move robot to zero position\n")
+        self.robot.home()
+        # print start coordinates
+        self.printTerminal("Start coordinates: X: "+str(START_X)+" Y: "+str(START_Y)+" Z: "+str(START_Z)+"\n")
+        # set slider to start coordinates
+        self.xSlider.set(START_X)
+        self.ySlider.set(START_Y)
+        # self.robot.move(z=START_Z, speed=200, wait=True)
+        # move robot to start coordinates in z axis
         pass
 
     def storePoint1(self):
@@ -99,7 +139,11 @@ class window:
         self.storePoint(3)
     
     def storePoint(self, point):
-        print("Point stored "+str(point))
+        # overwrite list of coordinate to points on frst place
+        self.points[point-1] = self.robot.getPosition()
+        self.printTerminal("Point "+str(point)+" stored\n")
+        self.printTerminal(str(self.points[point-1])+"\n")
+        self.setRotationIter = 0
         pass
 
     def move(sef, value):
@@ -109,38 +153,50 @@ class window:
     # Check if last value is changed more than 2s ago
 
     def moveX(self, value):
+        self.robot.move(x=value, z=START_Z, speed=200, wait=False)
         print(value)
         pass
 
     def moveY(self, value):
+        self.robot.move(y=value, speed=200, wait=False)
         print(value)
         pass
 
-    def set(self):
-        self.master.destroy()
+    def check(self):
+        # Check teach points
+        self.robot.move(x = self.points[0][0], y = self.points[0][1], z = self.points[0][2], speed=100, wait=True)
+        time.sleep(1)
+        self.robot.move(x = self.points[1][0], y = self.points[1][1], z = self.points[1][2], speed=100, wait=True)
+        time.sleep(1)
+        self.robot.move(x = self.points[2][0], y = self.points[2][1], z = self.points[2][2], speed=100, wait=True)
+        time.sleep(1)
 
     def setRotation(self):
-        print("Set rotation")
-        self.printTerminal("Set rotation\n")
-        pass
+        self.rotationOffset = self.robot.calibrateUserOrientationOffset(self.points, mode=0, trust_ind=0, input_is_radian=False, return_is_radian=False)[1]
+        self.printTerminal("Rotation offset: "+str(self.rotationOffset)+"\n")
+
+    def checkOrigin(self):
+        #self.robot.move(x = 0, y = 0, z = -2, speed=100, wait=True)
+        time.sleep(1)
 
     def setOrigin(self):
         print("Set origin")
         pass
 
     def cancel(self):
+        print(self.points)
         self.master.destroy()
 
     def on_key_press_x(self, event):
-        if event.keysym == "Left":
+        if event.keysym == "Down":
             self.xSlider.set(self.xSlider.get() - 0.1)
-        elif event.keysym == "Right":
+        elif event.keysym == "Up":
             self.xSlider.set(self.xSlider.get() + 0.1)
 
     def on_key_press_y(self, event):
-        if event.keysym == "Up":
+        if event.keysym == "Left":
             self.ySlider.set(self.ySlider.get() + 0.1)
-        elif event.keysym == "Down":
+        elif event.keysym == "Right":
             self.ySlider.set(self.ySlider.get() - 0.1)
 
     def on_closing(self):
@@ -262,9 +318,9 @@ def checkRotation():
             break
 
 def main():
-    #logger = logging.getLogger()
-    #robot = vr.Robot(ROBOT_IP, logger)
-    calibWindow = window(tk.Tk(), robot=None)
+    logger = logging.getLogger()
+    robot = vr.Robot(ROBOT_IP, logger)
+    calibWindow = window(tk.Tk(), robot=robot)
     # open window
     calibWindow.master.mainloop()
 

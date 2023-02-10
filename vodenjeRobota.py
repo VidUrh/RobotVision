@@ -39,8 +39,9 @@ class Robot:
         self.robot.set_state(state=0)
         self.logger.info("Robot connected!")
 
-    def move(self, x, y, z, roll, pitch, yaw, wait=True):
-        self.robot.set_position(x, y, z, roll, pitch, yaw, wait=wait)
+    # move roboto set default parameters
+    def move(self, x=None, y=None, z=None, roll=None, pitch=None, yaw=None, speed=SPEED_MIDDLE, wait=True, timeout=0):
+        self.robot.set_position(x, y, z, roll, pitch, yaw, speed=speed, wait=wait, timeout=timeout)
 
     def pick(self):
         self.robot.open_lite6_gripper()
@@ -63,9 +64,15 @@ class Robot:
         self.robot.set_servo_angle(
             angle=[90, 0, 90, 0.0, 90, 0], speed=SPEED_FAST, acceleration=5, is_radian=False, wait=True)
 
+    def getPosition(self):
+        return self.robot.get_position()[1]
+
     def set_position(self, x, y, z, speed, relative=False, wait=True):
         self.robot.set_position(
             x=x, y=y, z=z, speed=speed, relative=relative, wait=wait)
+        
+    def calibrateUserOrientationOffset(self, points, mode=0, trust_ind=0, input_is_radian=False, return_is_radian=False):
+        return self.robot.calibrate_user_orientation_offset(points, mode, trust_ind, input_is_radian, return_is_radian)[1]
 
 
 if __name__ == "__main__":
