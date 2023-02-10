@@ -78,25 +78,25 @@ class window:
 
         # add set origin button
         self.btSetOrigin = tk.Button(self.master, text="Set origin", bg="#e2ac4d", font=("Helvetic", 11), command=self.setOrigin)
-        self.btSetOrigin.grid(row=3, column=0, sticky="nsew")
+        self.btSetOrigin.grid(row=4, column=0, sticky="nsew")
 
-        # add cancel button
-        self.btCancel = tk.Button(self.master, text="Cancel", bg="#e2ac4d", font=("Helvetica", 11), command=self.cancel)
-        self.btCancel.grid(row=4, column=0, sticky="nsew")
+        # add done button
+        self.btDone = tk.Button(self.master, text="done", bg="#e2ac4d", font=("Helvetica", 11), command=self.done)
+        self.btDone.grid(row=4, column=1, sticky="nsew")
 
         # add slider for x axis on 1 decimal point
-        self.xSlider = tk.Scale(self.master, from_=80, to=400, length=1000, orient=tk.HORIZONTAL,  
+        self.xSlider = tk.Scale(self.master, from_=1000, to=-1000, length=1000, orient=tk.HORIZONTAL,  
                                 resolution=SLIDER_RESOLUTION, label="X axis (mm)", command=self.moveX, bg="#bfecff")
         self.xSlider.bind("<Button-1>", self.clickX)
         self.xSlider.grid(row=8, column=0, columnspan=10)
 
         # add slider for y axis on 1 decimal point
-        self.ySlider = tk.Scale(self.master, from_=250, to=-250, length=1000, orient=tk.HORIZONTAL,
+        self.ySlider = tk.Scale(self.master, from_=1000, to=-1000, length=1000, orient=tk.HORIZONTAL,
                                 resolution=SLIDER_RESOLUTION, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
         self.ySlider.grid(row=9, column=0, columnspan=10)
 
         # add slider for z axis on 1 decimal point
-        self.zSlider = tk.Scale(self.master, from_=100, to=-2, length=200, orient=tk.VERTICAL,
+        self.zSlider = tk.Scale(self.master, from_=300, to=-50, length=200, orient=tk.VERTICAL,
                                 resolution=0.1, label="Z (mm)", command=self.moveZ, bg="#bfecff")
         self.zSlider.bind("<Button-1>", self.clickZ)
         self.zSlider.grid(row=0, column=9, rowspan=7, columnspan=2)
@@ -133,6 +133,12 @@ class window:
     def baseCoord(self):
         self.btBaseCoord.config(relief=tk.SUNKEN)
         self.btUserCoord.config(relief=tk.RAISED)
+        self.xSlider.config(from_=80, to=400)
+        self.ySlider.config(from_=250, to=-250)
+        self.zSlider.config(from_=100, to=-2)
+        self.xSlider.set(self.robot.getPosition()[0])
+        self.ySlider.set(self.robot.getPosition()[1])
+        self.zSlider.set(self.robot.getPosition()[2])
         self.START_X = 350
         self.START_Y = 0
         self.START_Z = 3
@@ -141,6 +147,12 @@ class window:
     def userCoord(self):
         self.btUserCoord.config(relief=tk.SUNKEN)
         self.btBaseCoord.config(relief=tk.RAISED)
+        self.xSlider.config(from_=-100, to=100)
+        self.ySlider.config(from_=-500, to=500)
+        self.zSlider.config(from_=-100, to=100)
+        self.xSlider.set(self.robot.getPosition()[0])
+        self.ySlider.set(self.robot.getPosition()[1])
+        self.zSlider.set(self.robot.getPosition()[2])
         self.START_X = 0
         self.START_Y = 0
         self.START_Z = -3
@@ -221,7 +233,7 @@ class window:
         print("Set origin")
         pass
 
-    def cancel(self):
+    def done(self):
         print(self.points)
         self.master.destroy()
 
