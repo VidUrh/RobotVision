@@ -23,6 +23,11 @@ class window:
         self.points = [[], [], []]
         self.setRotationIter = 0 # number of times set rotation button is pressed
 
+        # set start coordinates
+        self.START_X = START_X
+        self.START_Y = START_Y
+        self.START_Z = START_Z
+
         self.master = master
         self.master.title("Robot calibration")
         self.master.geometry("1000x300")
@@ -72,12 +77,12 @@ class window:
 
         # add slider for x axis on 1 decimal point
         self.xSlider = tk.Scale(self.master, from_=150, to=400, length=1000, orient=tk.HORIZONTAL,  
-                                resolution=0.1, label="X axis (mm)", command=self.moveX, bg="#bfecff")
+                                resolution=0.5, label="X axis (mm)", command=self.moveX, bg="#bfecff")
         self.xSlider.grid(row=8, column=0, columnspan=10)
 
         # add slider for y axis on 1 decimal point
-        self.ySlider = tk.Scale(self.master, from_=-250, to=250, length=1000, orient=tk.HORIZONTAL,
-                                resolution=0.1, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
+        self.ySlider = tk.Scale(self.master, from_=250, to=-250, length=1000, orient=tk.HORIZONTAL,
+                                resolution=0.5, label="Y axis (mm)", command=self.moveY, bg="#bfecff")
         self.ySlider.grid(row=9, column=0, columnspan=10)
         
         # make button for 1. calibration point on right side
@@ -96,6 +101,10 @@ class window:
         self.terminal = tk.Text(self.master, height=10, width=10, bg="#bfecff", font=("Helvetica", 13))
         self.terminal.grid(row=0, column=2, columnspan=7, rowspan=5, sticky="nsew")
 
+        self.refreshSlider()
+
+    
+    def refreshSlider(self):
         self.robotPosition = self.robot.getPosition()
         self.xSlider.set(self.robotPosition[0])
         self.ySlider.set(self.robotPosition[1])
@@ -108,11 +117,17 @@ class window:
     def baseCoord(self):
         self.btBaseCoord.config(relief=tk.SUNKEN)
         self.btUserCoord.config(relief=tk.RAISED)
+        self.START_X = 350
+        self.START_Y = 0
+        self.START_Z = 3
         self.printTerminal("Base coord\n")
 
     def userCoord(self):
         self.btUserCoord.config(relief=tk.SUNKEN)
         self.btBaseCoord.config(relief=tk.RAISED)
+        self.START_X = 0
+        self.START_Y = 0
+        self.START_Z = -3
         self.printTerminal("User coord\n")
 
     def start(self):
@@ -120,11 +135,12 @@ class window:
         #Move robot in zero position
         self.printTerminal("Move robot to zero position\n")
         self.robot.home()
+        self.refreshSlider()
         # print start coordinates
-        self.printTerminal("Start coordinates: X: "+str(START_X)+" Y: "+str(START_Y)+" Z: "+str(START_Z)+"\n")
+        self.printTerminal("Start coordinates: X: "+str(self.START_X)+" Y: "+str(self.START_Y)+" Z: "+str(self.START_Z)+"\n")
         # set slider to start coordinates
-        self.xSlider.set(START_X)
-        self.ySlider.set(START_Y)
+        self.xSlider.set(self.START_X)
+        self.ySlider.set(self.START_Y)
         # self.robot.move(z=START_Z, speed=200, wait=True)
         # move robot to start coordinates in z axis
         pass
@@ -151,14 +167,13 @@ class window:
         pass
 
     # Check if last value is changed more than 2s ago
-
     def moveX(self, value):
-        self.robot.move(x=value, z=START_Z, speed=200, wait=False)
+        self.robot.move(x=value, z=START_Z, speed=100, wait=False)
         print(value)
         pass
 
     def moveY(self, value):
-        self.robot.move(y=value, speed=200, wait=False)
+        self.robot.move(y=value, z=START_Z, speed=100, wait=False)
         print(value)
         pass
 
