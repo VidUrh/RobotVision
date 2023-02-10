@@ -27,7 +27,7 @@ class window:
         self.setRotationIter = 0 # number of times set rotation button is pressed
 
         self.CLICK_XZ = 0
-        self.COORD_SYSTEM = 0 # 0 for base, 1 for user
+        self.COORD_SYSTEM = None # 0 for base, 1 for user
 
         # set start coordinates
         self.START_X = START_X
@@ -119,6 +119,8 @@ class window:
         self.terminal.grid(row=0, column=2, columnspan=7, rowspan=5, sticky="nsw")
 
         self.refreshSlider()
+        self.printTerminal("Welcome to the calibration program!\n")
+        self.printTerminal("Please select the coordinate system you want to use.\n")
     
     def refreshSlider(self):
         self.robotPosition = self.robot.getPosition()
@@ -162,9 +164,6 @@ class window:
         self.printTerminal("User coord\n")
 
     def start(self):
-        self.printTerminal("Start robot calibration\n")
-        #Move robot in zero position
-        self.printTerminal("Move robot to zero position\n")
         self.robot.home()
         self.refreshSlider()
         # print start coordinates
@@ -194,8 +193,7 @@ class window:
     def storePoint(self, point):
         # overwrite list of coordinate to points on frst place
         self.points[point-1] = self.robot.getPosition()
-        self.printTerminal("Point "+str(point)+" stored\n")
-        self.printTerminal(str(self.points[point-1])+"\n")
+        self.printTerminal("Point "+str(point)+" stored: "+str(self.points[point-1])+"\n")
         self.setRotationIter = 0
         pass
 
@@ -257,7 +255,7 @@ class window:
         print(self.robot.getPosition())
         self.robot.move(x = 0, y = 0, speed=100, wait=True)
         self.refreshSlider()
-        self.printTerminal("Check origin\n")
+        self.printTerminal("Origin coordinates checked\n")
 
     def setOrigin(self):
         self.printTerminal("Robot coordinates: X: "+str(-self.robot.getPosition()[0])+
