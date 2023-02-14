@@ -14,19 +14,85 @@ from parameters import *
 import logging
 import pickle
 
-class Camera:
+class selfExpCamera:
     '''
-    Camera class for handling camera and images operations
+    selfExpCamera class for handling camera and images operations for self exposure mode
     '''
     def __init__(self):
-        # Initialize camera
         self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
         self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
         self.cam.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
+        print(self.cam.get(cv2.CAP_PROP_EXPOSURE))
+        
+        # initialize camera class
+        self.cam = Camera(self.cam)
 
-        print("Exposure: ", self.cam.get(cv2.CAP_PROP_EXPOSURE))
+class autoExpCamera:
+    '''
+    autoCamera class for handling camera and images operations for auto exposure mode
+    '''
+    def __init__(self):
+        # Initialize camera
+        self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
+        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
+        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
+        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+        self.cam.set(cv2.CAP_PROP_AUTOFOCUS, 1)
+        self.cam.set(cv2.CAP_PROP_AUTO_WB, 1)
+
+        self.cam = Camera(self.cam)
+
+        self.image = None
+        self.alpha = None
+        self.beta = None
+    
+    def imageSettings(self):
+        '''
+        Function for setting image settings with convertScaleAbs function
+        alpha = 300/100 -> min 0, max 3
+        beta = 200-100 -> min -100, max 100
+        '''
+        cv2.namedWindow('image')
+        cv2.createTrackbar('Aplha','image',0, 300,self.setAlpha) # Hue is from 0-179 for Opencv
+        cv2.createTrackbar('Beta','image',0,200,self.setBeta)
+        cv2.setTrackbarPos('Aplha', 'image', 100)
+        cv2.setTrackbarPos('Beta', 'image', 100)
+        image = self.cam.getImage()[1]
+        cv2.imshow('image', image)
+        cv2.moveWindow('image', 0, 0)
+
+        while True:
+            image = self.cam.getImage()[1]
+            print(self.alpha, self.beta)
+            adjImage = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
+            cv2.imshow('image', adjImage)
+
+            key = cv2.waitKey(1)
+            if key == ord('q'):
+                break
+
+    def setAlpha(self, x):
+        self.alpha = x / 100
+        #print(alpha)
+        image = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
+        cv2.imshow('image', image)
+    
+    def setBeta(self, x):
+        self.beta = x - 100
+        #print(beta)
+        image = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
+        cv2.imshow('image', image)
+    
+class Camera:
+    '''
+    Camera class for handling camera and images operations
+    '''
+    def __init__(self, cam):
+        # Initialize camera
+        self.cam = cam
+
         with open(CALIBRATION_DATA_PATH, 'rb') as calibrationFile:
             data = pickle.load(calibrationFile)
             cameraMatrix = data['cameraMatrix']
@@ -130,7 +196,6 @@ class Camera:
             key = cv2.waitKey(ms)
             return key
             
-    
     def release(self):
         self.cam.release()
         logging.info("Camera released")
@@ -160,22 +225,31 @@ class Camera:
         except:
             logging.info("Windows already destroyed")
 
-class autaCamera:
-    pass
 
-def cameraMain():
+# Main functions or tests
+def selfExpCameraMain():
     # Test camera class
-    cam = Camera()
+    expCam = selfExpCamera() # Initialize camera with self exposure
+    cam = expCam.cam
     ret, image = cam.getImage()
     cam.showImage("test", image)
     cam.saveImage("test", image, 1, ".png")
     image = cam.loadImage("test", 1, ".png")
     cam.showImage("test1", image, 0)
 
-def autaCameraMain():
-    pass
+def autoExpCameraMain():
+    autoCam = autoExpCamera() # Initialize camera with auto exposure
+    cam = autoCam.cam
+    while True:
+        _, image = cam.getImage()
+        if cam.showImage("test", image, 1) == ord('q'):
+            break
+    
+def imageSettingsMain():
+    cam = autoExpCamera()
+    cam.imageSettings()
 
 if __name__ == "__main__":
-    #cameraMain()
-    autaCameraMain()
-
+    #selfExpCameraMain()
+    #autoExpCameraMain()
+    imageSettingsMain()
