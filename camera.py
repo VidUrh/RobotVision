@@ -15,6 +15,9 @@ import logging
 import pickle
 
 class Camera:
+    '''
+    Camera class for handling camera and images operations
+    '''
     def __init__(self):
         # Initialize camera
         self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
@@ -35,6 +38,18 @@ class Camera:
         cameraMatrix, dist, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT), 1, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT))
 
     def getImage(self):
+        '''
+        Get image from camera
+        
+        Returns
+        -------
+        ret : bool True if image is captured
+        image : numpy.ndarray Captured image
+        
+        Raises
+        ------
+        logging.error : Failed to grab frame
+        '''
         self.ret, self.image = self.cam.read()
         if not self.ret:
             logging.error("Failed to grab frame")
@@ -43,12 +58,34 @@ class Camera:
         return self.ret, self.image
     
     def getUndistortedImage(self):
+        '''
+        Get undistorted image from camera
+        
+        Returns
+        -------
+        ret : bool True if image is captured
+        image : numpy.ndarray Captured image
+        
+        Raises
+        ------
+        logging.error : Failed to grab frame
+        '''
         image = self.getImage()
 
         self.image = cv2.undistort(self.image, self.newcameramtx, self.dist)
         return self.ret, self.image
 
     def saveImage(self, path, image, number='', extension=".png"):
+        '''
+        Save image to path with number and extension
+
+        Parameters
+        ----------
+        path : str Path to save image
+        image : numpy.ndarray Image to save
+        number : int Number of image
+        extension : str Extension of image
+        '''
         if image is None:
             return None
         
@@ -57,6 +94,19 @@ class Camera:
         return image
     
     def loadImage(self, path, number, extension):
+        '''
+        Load image from path with number and extension
+        
+        Parameters
+        ----------
+        path : str Path to load image
+        number : int Number of image
+        extension : str Extension of image
+        
+        Returns
+        -------
+        image : numpy.ndarray Loaded image
+        '''
         path = path + "image" + str(number) + extension
         image = cv2.imread(path)
         return image
@@ -70,6 +120,10 @@ class Camera:
         name : str Name of the window
         image : numpy.ndarray Image to show
         ms : int Time to wait for key press
+
+        Returns
+        -------
+        key : int Key pressed
         '''
         cv2.imshow(name, image)
         if ms != -1:
@@ -89,6 +143,15 @@ class Camera:
             logging.info("Windows already destroyed")
 
     def __del__(self):
+        '''
+        Release camera and destroy windows
+        
+        Raises
+        ------
+        logging.info : Camera released
+        logging.info : Camera and windows destroyed
+        logging.info : Windows already destroyed
+        '''
         self.cam.release()
         logging.info("Camera released")
         try:
@@ -97,7 +160,10 @@ class Camera:
         except:
             logging.info("Windows already destroyed")
 
-if __name__ == "__main__":
+class autaCamera:
+    pass
+
+def cameraMain():
     # Test camera class
     cam = Camera()
     ret, image = cam.getImage()
@@ -105,4 +171,11 @@ if __name__ == "__main__":
     cam.saveImage("test", image, 1, ".png")
     image = cam.loadImage("test", 1, ".png")
     cam.showImage("test1", image, 0)
+
+def autaCameraMain():
+    pass
+
+if __name__ == "__main__":
+    #cameraMain()
+    autaCameraMain()
 
