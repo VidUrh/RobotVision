@@ -194,15 +194,15 @@ class NozzleDetector:
         orientation = round(orientation, 2)
 
         # get width and height from rotated rectangle (first element is width, second is height)
-        width = rotatedRect[-2][0]
-        height = rotatedRect[-2][1]
-
+        width, height = rotatedRect[-2]
         # Get orientation of the nozzle (if width is smaller than height, the nozzle is rotated 90 degrees)
         if width < height:
             orientation = orientation - 90
 
+        rectCx, rectCy = rotatedRect[0]
+        cX, cY = self.getCoordinates(objectContour)
         # Determine if the object is upside down
-        isUpside = self.getTopBottomOrientation(rotatedRect, objectContour)
+        isUpside = self.getTopBottomOrientation(rectCx, rectCy, cX, cY, orientation)
         # Fix orientation if flipped
         orientation = orientation + 180 * isUpside
 
@@ -212,19 +212,18 @@ class NozzleDetector:
 
         return 360 - orientation  # Subtracting for the rotation to rise counter-clockwise
 
-    def getTopBottomOrientation(self, rotatedRect, objectContour):
+    def getTopBottomOrientation(self, rectCx, rectCy, cX, cY, orientation):
         """
         Function to get the top-bottom orientation of an object
         Args:
-            rotatedRect: rotated rectangle around the object
+            rectCx: center x coordinate of the rotated rectangle
+            rectCy: center y coordinate of the rotated rectangle
+            cX: center x coordinate of the contour
+            cY: center y coordinate of the contour
+            orientation: orientation of the object
         Returns:
             isUpside: bool() value if the object is upside down
         """
-
-        # Get center coordinates of rotated rectangle and of the contour for determining if the nozzle is upside down
-        rectCx, rectCy = map(int, rotatedRect[0])
-        cX, cY = self.getCoordinates(objectContour)
-        orientation = rotatedRect[-1]
 
         # If the objects orientation is horizontal
         #   then check if the center of the contour is to the left of the center of the rotated rectangle,
