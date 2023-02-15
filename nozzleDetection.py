@@ -10,6 +10,7 @@ import logging
 import time
 import threading
 import pickle
+import camera
 
 class CameraReadError(Exception):
     pass
@@ -35,7 +36,7 @@ class NozzleDetector:
         self.setupCamera()
 
     def __del__(self):
-        self.cam.release()
+        del self.cam
         cv2.destroyAllWindows()
 
     def detectNozzles(self):
@@ -43,11 +44,8 @@ class NozzleDetector:
             Funkcija za detekcijo nozzlov na sliki.
             Vrne seznam objektov class-a Nozzle.
         """
-        ret, self.image = self.cam.read()
-        if ret == False:
-            logging.critical("Failed to read image")
-            raise CameraReadError("Failed to read image from camera")
-
+        ret, self.image = self.cam.getUndistortedImage()
+        
         # transform to binary image
         transformed = self.transformImage(self.image)
 
@@ -73,40 +71,13 @@ class NozzleDetector:
         return None
 
     def setupCamera(self):
-        self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
-        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
-        self.cam.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
-
-        # Read camera calibration data
-        with open(CALIBRATION_DATA_PATH, 'rb') as calibrationFile:
-            data = pickle.load(calibrationFile)
-            self.cameraMatrix = data['cameraMatrix']
-            self.dist = data['dist']
-            self.rvecs = data['rvecs']
-            self.tvecs = data['tvecs']
-        self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(
-            self.cameraMatrix, self.dist, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT), 1, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT))
-
+        self.cam = camera.selfExpCamera()
         return self.cam
-
-    def undistortImage(self, distortedImage):
-        """
-            Function to remove distortion from the image.
-        """
-        # undistort the image
-        undistorted = cv2.undistort(
-            distortedImage, self.newcameramtx, self.dist)
-        return undistorted
 
     def transformImage(self, image):
         """
             Funkcija za transformacijo začetne barvne slike v primerno binarno sliko.
         """
-        # undistort the image
-        image = self.undistortImage(image)
-
         # convert the frame to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
