@@ -97,7 +97,7 @@ class window:
         self.ySlider.grid(row=9, column=0, columnspan=10)
 
         # add slider for z axis on 1 decimal point
-        self.zSlider = tk.Scale(self.master, from_=300, to=-50, length=200, orient=tk.VERTICAL,
+        self.zSlider = tk.Scale(self.master, from_=300, to=-100, length=200, orient=tk.VERTICAL,
                                 resolution=0.1, label="Z (mm)", command=self.moveZ, bg="#bfecff")
         self.zSlider.bind("<Button-1>", self.clickZ)
         self.zSlider.grid(row=0, column=9, rowspan=7, columnspan=2)
@@ -120,7 +120,7 @@ class window:
 
         self.refreshSlider()
         self.printTerminal("Welcome to the calibration program!\n")
-        self.printTerminal("Please select the coordinate system you want to use.\n")
+        self.printTerminal("Please set the coordinate system on robot gui and select it here.\n")
     
     def refreshSlider(self):
         self.robotPosition = self.robot.getPosition()
@@ -140,7 +140,7 @@ class window:
         self.ySlider.set(self.robot.getPosition()[1])
         self.zSlider.set(self.robot.getPosition()[2])
         self.xSlider.config(from_=80, to=400)
-        self.ySlider.config(from_=250, to=-250)
+        self.ySlider.config(from_=400, to=-400)
         self.zSlider.config(from_=100, to=-2)
         self.START_X = 350
         self.START_Y = 0
@@ -154,11 +154,11 @@ class window:
         self.xSlider.set(self.robot.getPosition()[0])
         self.ySlider.set(self.robot.getPosition()[1])
         self.zSlider.set(self.robot.getPosition()[2])
-        self.xSlider.config(from_=-300, to=150)
+        self.xSlider.config(from_=-500, to=150)
         self.ySlider.config(from_=-500, to=500)
         self.zSlider.config(from_=-100, to=100)
         self.START_X = -150
-        self.START_Y = -150
+        self.START_Y = 150
         self.START_Z = -3
         self.COORD_SYSTEM = 1
         self.printTerminal("User coord\n")
@@ -229,7 +229,7 @@ class window:
         self.rotationOffset = self.robot.calibrateUserOrientationOffset(self.points, mode=0, 
                                                                         trust_ind=0, input_is_radian=False, 
                                                                         return_is_radian=False)[1]
-        self.printTerminal("Rotation offset: "+str(self.rotationOffset)+"\n")
+        self.printTerminal("Rotation offset roll: "+str(self.rotationOffset[0])+" pitch: "+str(self.rotationOffset[1])+" yaw: "+str(self.rotationOffset[2])+"\n")
 
     def checkOrigin(self):
         # move robot in x direction
@@ -239,21 +239,22 @@ class window:
         self.robot.move(x = 0, y = 0, z = -5, speed=100, wait=True)
         for i in range(0, 6):
             self.robot.move(x = (self.x+(i*CALIBRATION_SQUARE_SIZE*1000)), y = self.y, z = self.z, speed=100, wait=True)
-            time.sleep(1)
+            # Wait for robot to move
+            time.sleep(0.5)
 
         self.robot.move(x = 0, y = 0, speed=100, wait=True)
-        time.sleep(3)
+        time.sleep(0.5)
 
         for i in range(1, 6):
             self.robot.move(x = self.x, y = (i*CALIBRATION_SQUARE_SIZE*1000), z = self.z, speed=100, wait=True)
-            time.sleep(1)
+            time.sleep(0.5)
 
         self.robot.move(x = 0, y = 0, speed=100, wait=True)
         self.robot.move(x = (6*CALIBRATION_SQUARE_SIZE*1000), y = (6*CALIBRATION_SQUARE_SIZE*1000), z = self.z, speed=100, wait=True)
-        time.sleep(2)
+        time.sleep(5)
 
-        print(self.robot.getPosition())
         self.robot.move(x = 0, y = 0, speed=100, wait=True)
+        time.sleep(1)
         self.refreshSlider()
         self.printTerminal("Origin coordinates checked\n")
 
