@@ -9,7 +9,7 @@ from parameters import *
 import json
 import camera
 
-cam = camera.Camera()
+cam = camera.selfExpCamera()
 
 while True:
     ret, frame = cam.getUndistortedImage()
