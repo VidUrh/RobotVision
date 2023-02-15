@@ -84,11 +84,9 @@ def takeCalibrationImages(camera):
 
         cv2.imshow("Calibration image", calibrationImage)
 
-        key = cv2.waitKey(0)
+        key = cv2.waitKey(1000)
         if key == ord("q"):
             break
-        if key == ord("n"):
-            continue
         if key == ord("s") and board_detected == True:
             # storing the checker board image
             cv2.imwrite(f"{CALIBRATION_IMAGE_DIR}/image{n}.png", gray)
@@ -121,7 +119,7 @@ def calibrateCamera():
     objp = np.zeros((np.prod(CALIBRATION_SQUARES), 3), np.float32)
 
     objp[:, :2] = np.mgrid[0:CALIBRATION_SQUARES[0],
-                           0:CALIBRATION_SQUARES[1]].T.reshape(-1, 2) * CALIBRATION_SQUARE_SIZE  # 3D points in real world space
+                           0:CALIBRATION_SQUARES[1]].T.reshape(-1, 2) * CALIBRATION_SQUARE_SIZE_MM  # 3D points in real world space
 
     images = [cv2.imread(filename)
               for filename in glob.glob(CALIBRATION_IMAGE_DIR+'/*png')]
