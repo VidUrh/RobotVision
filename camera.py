@@ -14,77 +14,6 @@ from parameters import *
 import logging
 import pickle
 
-class selfExpCamera:
-    '''
-    selfExpCamera class for handling camera and images operations for self exposure mode
-    '''
-    def __init__(self):
-        self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
-        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
-        self.cam.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
-        print(self.cam.get(cv2.CAP_PROP_EXPOSURE))
-        
-        # initialize camera class
-        self.cam = Camera(self.cam)
-
-class autoExpCamera:
-    '''
-    autoCamera class for handling camera and images operations for auto exposure mode
-    '''
-    def __init__(self):
-        # Initialize camera
-        self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
-        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
-        self.cam.set(cv2.CAP_PROP_AUTOFOCUS, 1)
-        self.cam.set(cv2.CAP_PROP_AUTO_WB, 1)
-
-        self.cam = Camera(self.cam)
-
-        self.image = None
-        self.alpha = None
-        self.beta = None
-    
-    def imageSettings(self):
-        '''
-        Function for setting image settings with convertScaleAbs function
-        alpha = 300/100 -> min 0, max 3
-        beta = 200-100 -> min -100, max 100
-        '''
-        cv2.namedWindow('image')
-        cv2.createTrackbar('Aplha','image',0, 300,self.setAlpha) # Hue is from 0-179 for Opencv
-        cv2.createTrackbar('Beta','image',0,200,self.setBeta)
-        cv2.setTrackbarPos('Aplha', 'image', 100)
-        cv2.setTrackbarPos('Beta', 'image', 100)
-        image = self.cam.getImage()[1]
-        cv2.imshow('image', image)
-        cv2.moveWindow('image', 0, 0)
-
-        while True:
-            image = self.cam.getImage()[1]
-            print(self.alpha, self.beta)
-            adjImage = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
-            cv2.imshow('image', adjImage)
-
-            key = cv2.waitKey(1)
-            if key == ord('q'):
-                break
-
-    def setAlpha(self, x):
-        self.alpha = x / 100
-        #print(alpha)
-        image = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
-        cv2.imshow('image', image)
-    
-    def setBeta(self, x):
-        self.beta = x - 100
-        #print(beta)
-        image = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
-        cv2.imshow('image', image)
-    
 class Camera:
     '''
     Camera class for handling camera and images operations
@@ -225,6 +154,78 @@ class Camera:
         except:
             logging.info("Windows already destroyed")
 
+class selfExpCamera(Camera):
+    '''
+    selfExpCamera class for handling camera and images operations for self exposure mode
+    '''
+    def __init__(self):
+        self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
+        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
+        self.cam.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
+        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
+        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
+        print(self.cam.get(cv2.CAP_PROP_EXPOSURE))
+        
+        # initialize camera class
+        Camera.__init__(self, self.cam)
+
+class autoExpCamera(Camera):
+    '''
+    autoCamera class for handling camera and images operations for auto exposure mode
+    '''
+    def __init__(self):
+        # Initialize camera
+        self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
+        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
+        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
+        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+        self.cam.set(cv2.CAP_PROP_AUTOFOCUS, 1)
+        self.cam.set(cv2.CAP_PROP_AUTO_WB, 1)
+
+        # initialize camera class
+        Camera.__init__(self, self.cam)
+
+        self.image = None
+        self.alpha = None
+        self.beta = None
+    
+    def imageSettings(self):
+        '''
+        Function for setting image settings with convertScaleAbs function
+        alpha = 300/100 -> min 0, max 3
+        beta = 200-100 -> min -100, max 100
+        '''
+        cv2.namedWindow('image')
+        cv2.createTrackbar('Aplha','image',0, 300,self.setAlpha) # Hue is from 0-179 for Opencv
+        cv2.createTrackbar('Beta','image',0,200,self.setBeta)
+        cv2.setTrackbarPos('Aplha', 'image', 100)
+        cv2.setTrackbarPos('Beta', 'image', 100)
+        image = Camera.getImage(self)[1]
+        cv2.imshow('image', image)
+        cv2.moveWindow('image', 0, 0)
+
+        while True:
+            image = Camera.getImage(self)[1]
+            print(self.alpha, self.beta)
+            adjImage = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
+            cv2.imshow('image', adjImage)
+
+            key = cv2.waitKey(1)
+            if key == ord('q'):
+                break
+
+    def setAlpha(self, x):
+        self.alpha = x / 100
+        #print(alpha)
+        image = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
+        cv2.imshow('image', image)
+    
+    def setBeta(self, x):
+        self.beta = x - 100
+        #print(beta)
+        image = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
+        cv2.imshow('image', image)
+    
 
 # Main functions or tests
 def selfExpCameraMain():
@@ -249,7 +250,16 @@ def imageSettingsMain():
     cam = autoExpCamera()
     cam.imageSettings()
 
+def test():
+    cam = autoExpCamera()
+    cam.imageSettings()
+    while	True:
+        _, image = cam.getImage()
+        if cam.showImage("test", image, 1) == ord('q'):
+            break
+
 if __name__ == "__main__":
     #selfExpCameraMain()
     #autoExpCameraMain()
-    imageSettingsMain()
+    #imageSettingsMain()
+    test()
