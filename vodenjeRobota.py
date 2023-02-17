@@ -32,7 +32,6 @@ class Robot:
         self.logger = logger
         self.logger.info("Connecting to robot...")
         self.robot = XArmAPI(ip)
-        self.robot.reset()
         self.robot.clean_error()
         self.robot.motion_enable(enable=True)
         self.robot.set_mode(0)
