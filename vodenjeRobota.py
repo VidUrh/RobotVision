@@ -40,8 +40,8 @@ class Robot:
         self.logger.info("Robot connected!")
 
     # move roboto set default parameters
-    def move(self, x=None, y=None, z=None, roll=None, pitch=None, yaw=None, speed=SPEED_MIDDLE, wait=True, timeout=0):
-        self.robot.set_position(x, y, z, roll, pitch, yaw, speed=speed, wait=wait, timeout=timeout)
+    def move(self, x=None, y=None, z=None, roll=None, pitch=None, yaw=None, speed=SPEED_MIDDLE, mvacc=None, wait=True, timeout=0):
+        self.robot.set_position(x, y, z, roll, pitch, yaw, speed=speed, mvacc=mvacc, wait=wait, timeout=timeout)
 
     def pick(self):
         self.robot.open_lite6_gripper()
