@@ -74,8 +74,12 @@ class Robot:
     def calibrateUserOrientationOffset(self, points, mode=0, trust_ind=0, input_is_radian=False, return_is_radian=False):
         return self.robot.calibrate_user_orientation_offset(points, mode, trust_ind, input_is_radian, return_is_radian)
 
+    def setState(self, state=0):
+        self.robot.set_state(state)
+
     def setWorldOffset(self, offset, is_radian=False):
-        return self.robot.set_world_offset(offset, is_radian)
+        ret =  self.robot.set_world_offset(offset, is_radian)
+        self.setState(0)
 
 
 if __name__ == "__main__":
