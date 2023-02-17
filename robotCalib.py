@@ -232,6 +232,9 @@ class App:
                 self.zSlider.set(self.robot.getPosition()[5])
 
             self.COORD_SYSTEM = 0
+
+        elif self.COORD_SYSTEM == -1:
+            self.print_terminal("Finish with origin calibration\n")
             
             
 
@@ -246,9 +249,23 @@ class App:
             self.robot.setWorldOffset([0, 0, 0, self.rotationOffset[0], self.rotationOffset[1], self.rotationOffset[2]])
             self.user_coord()
             self.btCoord.config(text="Rotation offset", bg="red")
+            self.USER_COORD = -1
             #self.refresh_slider()
             self.print_terminal("Rotation offset set\n")
-            
+
+    def set_origin(self):
+        if self.robot == None:
+            self.print_terminal("Robot not connected\n")
+        else:
+            self.originOffset = self.robot.getPosition()
+            self.print_terminal("Robot coordinates: X: "+str(self.originOffset[0])+
+                                " Y: "+str(self.originOffset[1])+" Z: "+str(self.originOffset[2])+"\n")
+            self.robot.setWorldOffset([-self.originOffset[0], -self.originOffset[1], -self.originOffset[2], 
+                                        self.rotationOffset[0], self.rotationOffset[1], self.rotationOffset[2]])
+            self.refresh_slider()
+            self.btCoord.config(text="Origin coord", bg="light green")
+            self.print_terminal("Origin offset set\n")
+            self.USER_COORD = 0
 
     def check_origin(self):
         # make thread for checking origin
@@ -291,18 +308,7 @@ class App:
         self.print_terminal("Check origin\n")
         self.btCheckOrigin.config(relief=tk.RAISED)
 
-    def set_origin(self):
-        if self.robot == None:
-            self.print_terminal("Robot not connected\n")
-        else:
-            self.originOffset = self.robot.getPosition()
-            self.print_terminal("Robot coordinates: X: "+str(self.originOffset[0])+
-                                " Y: "+str(self.originOffset[1])+" Z: "+str(self.originOffset[2])+"\n")
-            self.robot.setWorldOffset([-self.originOffset[0], -self.originOffset[1], -self.originOffset[2], 
-                                       self.rotationOffset[0], self.rotationOffset[1], self.rotationOffset[2]])
-            self.btCoord.config(text="Origin coord", bg="light green")
-            self.print_terminal("Origin offset set\n")
-        
+   
 
     def done(self):
         # store points to pickle file
