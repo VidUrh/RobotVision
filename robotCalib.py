@@ -307,7 +307,7 @@ class App:
     def done(self):
         # store points to pickle file
         # check if all points are stored
-        if len(self.points) != 3:
+        if len(self.points) == 3:
             with open(self.picklePath, 'wb') as f:
                 pickle.dump(self.points, f)
             self.print_terminal("Points stored\n")
@@ -374,11 +374,11 @@ class App:
 
     def store_point_2(self):
         self.storePoint(2)
-        self.btPoint1.config(bg="light green")
+        self.btPoint2.config(bg="light green")
 
     def store_point_3(self):
         self.storePoint(3)
-        self.btPoint1.config(bg="light green")
+        self.btPoint3.config(bg="light green")
     
     def storePoint(self, point):
         # overwrite list of coordinate to points on frst place
@@ -387,7 +387,7 @@ class App:
             return
         else:
             self.points[point-1] = self.robot.getPosition()
-        self.print_terminal("Point "+str(point)+" stored: "+str(self.points[point-1])+"\n")
+            self.print_terminal("Point "+str(point)+" stored: "+str(self.points[point-1])+"\n")
 
     def on_key_press_x_or_z(self, event):
         if self.CLICK_XZ == 0:
