@@ -156,7 +156,7 @@ class App:
     def stop(self):
         # stop robot
         self.print_terminal("Stop,  NEED TO FINISH IT\n")
-
+        self.robot.stop()
         self.master.attributes("-disabled", True)
         self.master.after(0, self.master.destroy)
 

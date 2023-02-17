@@ -80,6 +80,9 @@ class Robot:
         ret =  self.robot.set_world_offset(offset, is_radian)
         self.setState(0)
 
+    def stop(self):
+        self.setState(4)
+
 
 if __name__ == "__main__":
     # Logging
