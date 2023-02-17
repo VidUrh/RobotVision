@@ -20,7 +20,7 @@ SLIDER_RESOLUTION = 0.5 # in mm
 
 # Make gui for user to set robot to base position
 class App:
-    def __init__(self, master, robot):
+    def __init__(self, master, robot=None):
         self.robot = robot
         # make empty list for 3 list of coordinates
         self.points = [[], [], []]
@@ -31,7 +31,7 @@ class App:
         self.robotSpeed = 120
 
         self.CLICK_XZ = 0
-        self.COORD_SYSTEM = 0 # 0 for base, 1 for user
+        self.COORD_SYSTEM = 1 # 0 for base, 1 for user
 
         # set start coordinates
         self.START_X = START_X
@@ -58,13 +58,8 @@ class App:
         self.master.bind("<Down>",  self.on_key_press_x_or_z)
 
         # add base coord buttons, stay in while user press again
-        # snakecase for function inside app class
-        self.btBaseCoord = tk.Button(self.master, text="Base coord", bg="#43b0f1", font=("Helvetic", 11), command=self.base_coord)
-        self.btBaseCoord.grid(row=0, column=1, sticky="nsew")
-
-        # add user coord buttons
-        self.btUserCoord = tk.Button(self.master, text="User coord", bg="#43b0f1", font=("Helvetic", 11), command=self.user_coord)
-        self.btUserCoord.grid(row=0, column=0, sticky="nsew")
+        self.btCoord = tk.Button(self.master, text="Base coord", bg="#43b0f1", font=("Helvetic", 13), command=self.coord)
+        self.btCoord.grid(row=0, column=0, columnspan=2, sticky="nsew")
 
         # add start button
         self.btStart = tk.Button(self.master, text="Start", bg="#e2ac4d", font=("Helvetice", 11), command=self.start)
@@ -217,44 +212,28 @@ class App:
             time.sleep(1)
         self.btCheckPoints.config(relief=tk.RAISED)
 
-    def base_coord(self):
-        self.print_terminal("Base coord\n")
-        self.COORD_SYSTEM = 0
-        self.btBaseCoord.config(relief=tk.SUNKEN)
-        self.btUserCoord.config(relief=tk.RAISED)
-        if self.robot == None:
-            pass
-        else:
-            self.xSlider.set(self.robot.getPosition()[0])
-            self.ySlider.set(self.robot.getPosition()[1])
-            self.zSlider.set(self.robot.getPosition()[2])
-        self.xSlider.config(from_=80, to=400)
-        self.ySlider.config(from_=400, to=-400)
-        self.zSlider.config(from_=100, to=-2)
-        self.START_X = 350
-        self.START_Y = 0
-        self.START_Z = 3
-        self.COORD_SYSTEM = 0
+    def coord(self):
+        if self.COORD_SYSTEM == 0:
+            self.print_terminal("Base coord\n")
+            self.btCoord.config(text="Base coord", bg="#43b0f1")
+            if self.robot != None:
+                self.xSlider.set(self.robot.getPosition()[0])
+                self.ySlider.set(self.robot.getPosition()[1])
+                self.zSlider.set(self.robot.getPosition()[2])
+            
+            self.COORD_SYSTEM = 1
 
-    def user_coord(self):
-        self.print_terminal("User coord\n")
-        self.COORD_SYSTEM = 1
-        self.btUserCoord.config(relief=tk.SUNKEN)
-        self.btBaseCoord.config(relief=tk.RAISED)
-        
-        #self.xSlider.config(from_=-450, to=150)
-        #self.ySlider.config(from_=-500, to=500)
-        #self.zSlider.config(from_=-100, to=100)
+        elif self.COORD_SYSTEM == 1:
+            self.print_terminal("User coord\n")
+            self.btCoord.config(text="User coord", bg="light green")
+            if self.robot != None:
+                self.xSlider.set(self.robot.getPosition()[3])
+                self.ySlider.set(self.robot.getPosition()[4])
+                self.zSlider.set(self.robot.getPosition()[5])
 
-        if self.robot == None:
-            pass
-        else:
-            self.refresh_slider()
-
-        self.START_X = -150
-        self.START_Y = 150
-        self.START_Z = -3
-        self.COORD_SYSTEM = 1
+            self.COORD_SYSTEM = 0
+            
+            
 
     def set_rotation(self):
         if self.robot == None:
@@ -266,6 +245,7 @@ class App:
             self.print_terminal("Rotation offset roll: "+str(self.rotationOffset[0])+" pitch: "+str(self.rotationOffset[1])+" yaw: "+str(self.rotationOffset[2])+"\n")
             self.robot.setWorldOffset([0, 0, 0, self.rotationOffset[0], self.rotationOffset[1], self.rotationOffset[2]])
             self.user_coord()
+            self.btCoord.config(text="Rotation offset", bg="red")
             #self.refresh_slider()
             self.print_terminal("Rotation offset set\n")
             
@@ -320,7 +300,9 @@ class App:
                                 " Y: "+str(self.originOffset[1])+" Z: "+str(self.originOffset[2])+"\n")
             self.robot.setWorldOffset([-self.originOffset[0], -self.originOffset[1], -self.originOffset[2], 
                                        self.rotationOffset[0], self.rotationOffset[1], self.rotationOffset[2]])
+            self.btCoord.config(text="Origin coord", bg="light green")
             self.print_terminal("Origin offset set\n")
+        
 
     def done(self):
         # store points to pickle file
