@@ -24,8 +24,7 @@ class App:
         self.robot = robot
         # make empty list for 3 list of coordinates
         self.points = [[], [], []]
-        self.rotationOffset = [0, 0, 0]
-        self.originOffset = [0, 0, 0]
+        self.coordOffset = [[], [], [], [], [], []]
 
         self.mvacc = 500
         self.robotSpeed = 120
@@ -40,7 +39,8 @@ class App:
 
         self._job = None # for slider delay
 
-        self.picklePath = 'robotCalibPoints.pickle'
+        self.pointPklPath = 'robotCalibPoints.pickle'
+        self.coordOffPklPath = 'robotCalibCoordOffset.pickle'
 
         self.master = master
         self.master.title("Robot calibration")
@@ -127,9 +127,9 @@ class App:
         self.terminal.grid(row=0, column=2, columnspan=7, rowspan=5, sticky="nsw")
     
         # check if there is pickle file with points and read it
-        if os.path.isfile(self.picklePath):
+        if os.path.isfile(self.pointPklPath):
         # read points pickle file
-            with open(self.picklePath, 'rb') as f:
+            with open(self.pointPklPath, 'rb') as f:
                 self.readPoints = pickle.load(f)
                 for point in self.readPoints:
                     if point != None:
@@ -234,38 +234,35 @@ class App:
             self.COORD_SYSTEM = 0
 
         elif self.COORD_SYSTEM == -1:
-            self.print_terminal("Finish with origin calibration\n")
-            
-            
+            self.print_terminal("Finish with origin calibration\n")   
 
     def set_rotation(self):
         if self.robot == None:
-            self.print_terminal("Robot not connected\n")
-        else:
-            self.rotationOffset = self.robot.calibrateUserOrientationOffset(self.points, mode=0, 
-                                                                            trust_ind=0, input_is_radian=False, 
-                                                          return_is_radian=False)[1]
-            self.print_terminal("Rotation offset roll: "+str(self.rotationOffset[0])+" pitch: "+str(self.rotationOffset[1])+" yaw: "+str(self.rotationOffset[2])+"\n")
-            self.robot.setWorldOffset([0, 0, 0, self.rotationOffset[0], self.rotationOffset[1], self.rotationOffset[2]])
-            self.user_coord()
+            self.coordOffset[3:] = self.robot.calibrateUserOrientationOffset()
+            self.print_terminal("Rotation offset roll: "+str(self.coordOffset[3])+" pitch: "+str(self.coordOffset[4])+" yaw: "+str(self.coordOffset[5])+"\n")
+            self.robot.setWorldOffset(self.coordOffset)
             self.btCoord.config(text="Rotation offset", bg="red")
             self.USER_COORD = -1
-            #self.refresh_slider()
+            self.refresh_slider()
             self.print_terminal("Rotation offset set\n")
+        else:
+            self.print_terminal("Robot not connected\n")
 
     def set_origin(self):
-        if self.robot == None:
-            self.print_terminal("Robot not connected\n")
-        else:
-            self.originOffset = self.robot.getPosition()
-            self.print_terminal("Robot coordinates: X: "+str(self.originOffset[0])+
-                                " Y: "+str(self.originOffset[1])+" Z: "+str(self.originOffset[2])+"\n")
-            self.robot.setWorldOffset([-self.originOffset[0], -self.originOffset[1], -self.originOffset[2], 
-                                        self.rotationOffset[0], self.rotationOffset[1], self.rotationOffset[2]])
+        if self.robot != None:
+            self.coordOffset[:3] = self.robot.getPosition()[:3]    
+            self.print_terminal("Robot coordinates: X: "+str(self.coordOffset[0])+
+                                " Y: "+str(self.coordOffset[1])+" Z: "+str(self.coordOffset[2])+"\n")
+            self.robot.setWorldOffset([-self.coordOffset[0], -self.coordOffset[1], -self.coordOffset[2], 
+                                        self.coordOffset[3], self.coordOffset[4], self.coordOffset[5]])
             self.refresh_slider()
+
             self.btCoord.config(text="Origin coord", bg="light green")
             self.print_terminal("Origin offset set\n")
             self.USER_COORD = 0
+        else:
+            self.print_terminal("Robot not connected\n")
+        
 
     def check_origin(self):
         # make thread for checking origin
@@ -308,18 +305,24 @@ class App:
         self.print_terminal("Check origin\n")
         self.btCheckOrigin.config(relief=tk.RAISED)
 
-   
-
     def done(self):
         # store points to pickle file
         # check if all points are stored
         if len(self.points) == 3:
-            with open(self.picklePath, 'wb') as f:
+            with open(self.pointPklPath, 'wb') as f:
                 pickle.dump(self.points, f)
             self.print_terminal("Points stored\n")
         else:
             self.print_terminal("Not all points are set\n")
         
+        # store rotation and origin offset to pickle file
+        if len(self.coordOffset) == 6:
+            with open(self.coordOffPklPath, 'wb') as f:
+                pickle.dump(self.coordOffset, f)
+            self.print_terminal("Rotation and origin offset stored\n")
+        else:
+            self.print_terminal("Rotation and origin offset not set\n")
+
         # disabel master window from clicking
         self.master.attributes("-disabled", True)
 
