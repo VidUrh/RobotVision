@@ -1,4 +1,3 @@
-from xarm.wrapper import XArmAPI
 from parameters import *
 import tkinter as tk
 import vodenjeRobota as vr
@@ -8,40 +7,40 @@ import threading
 import pickle
 import os
 
-timeout = 2
-rspeed = 70
-
 # Constants
 START_X = 150
 START_Y = -100
 START_Z = 0 # in mm negative value is up
 
-SLIDER_RESOLUTION = 0.5 # in mm
+XY_SLIDER_RESOLUTION = 0.5 # in mm
+Z_SLIDER_RESOLUTION  = 0.1 # in mm
 
 # Make gui for user to set robot to base position
 class App:
     def __init__(self, master, robot=None):
+        # ------------------ VARIABLES ------------------
         self.robot = robot
         # make empty list for 3 list of coordinates
-        self.points = [[], [], []]
-        self.coordOffset = [[], [], [], [], [], []]
+        self.points      = [[], [], []]             # place for points for rotation calibration
+        self.coordOffset = [[], [], [], [], [], []] # place for coord offset
 
-        self.mvacc = 500
-        self.robotSpeed = 120
+        self.robotSpeed = 120 # in mm/s
+        self.mvacc      = 500 # in mm/s^2
 
-        self.CLICK_XZ = 0
-        self.COORD_SYSTEM = 1 # 0 for base, 1 for user
+        self.CLICK_XZ     = 0 # 0 for x, 1 for z (for connecting arrow keys to x or z slider)
+        self.COORD_SYSTEM = 1 # 0 for base, 1 for user (for saving which coord is in use)
 
         # set start coordinates
-        self.START_X = START_X
-        self.START_Y = START_Y
-        self.START_Z = START_Z
+        self.START_X = START_X # in mm
+        self.START_Y = START_Y # in mm
+        self.START_Z = START_Z # in mm
 
         self._job = None # for slider delay
 
-        self.pointPklPath = 'robotCalibPoints.pickle'
-        self.coordOffPklPath = 'robotCalibCoordOffset.pickle'
+        self.pointPklPath    = 'robotCalibPoints.pickle'      # path to pickle file for points
+        self.coordOffPklPath = 'robotCalibCoordOffset.pickle' # path to pickle file for coord offset
 
+        # ------------------ GUI ------------------
         self.master = master
         self.master.title("Robot calibration")
         self.master.geometry("1000x300")
@@ -52,80 +51,101 @@ class App:
             self.master.columnconfigure(i, weight=1)
             self.master.rowconfigure(i, weight=1)
 
+    	# Connect arrow keys to sliders when you are in app
         self.master.bind("<Left>",  self.on_key_press_y)
         self.master.bind("<Right>", self.on_key_press_y)
         self.master.bind("<Up>",    self.on_key_press_x_or_z)
         self.master.bind("<Down>",  self.on_key_press_x_or_z)
 
+        # ------------------ BUTTONS ------------------
         # add base coord buttons, stay in while user press again
-        self.btCoord = tk.Button(self.master, text="Base coord", bg="#43b0f1", font=("Helvetic", 13), command=self.coord)
+        self.btCoord = tk.Button(self.master, text="Base coord", bg="#43b0f1", 
+                                 font=("Helvetic", 13), command=self.coord)
         self.btCoord.grid(row=0, column=0, columnspan=2, sticky="nsew")
 
-        # add start button
-        self.btStart = tk.Button(self.master, text="Start", bg="#e2ac4d", font=("Helvetice", 11), command=self.start)
-        self.btStart.grid(row=1, column=0, sticky="nsew")
-
         # add home button
-        self.btHome = tk.Button(self.master, text="Home", bg="#e2ac4d", font=("Helvetic", 11), command=self.home)
-        self.btHome.grid(row=1, column=1, sticky="nsew")
+        self.btHome = tk.Button(self.master, text="Home", bg="#e2ac4d", 
+                                font=("Helvetic", 11), command=self.home)
+        self.btHome.grid(row=1, column=0, sticky="nsew")
+
+        # add start button
+        self.btStart = tk.Button(self.master, text="Start", bg="#e2ac4d", 
+                                 font=("Helvetice", 11), command=self.start)
+        self.btStart.grid(row=1, column=1, sticky="nsew")
 
         # add check points button
-        self.btCheckPoints = tk.Button(self.master, text="Check points", bg="#e2ac4d", font=("Helvetic", 11), command=self.check_points)
-        self.btCheckPoints.grid(row=2, column=1, sticky="nsew")
+        self.btCheckPoints = tk.Button(self.master, text="Check points", bg="#e2ac4d", 
+                                       font=("Helvetic", 11), command=self.check_points)
+        self.btCheckPoints.grid(row=2, column=0, sticky="nsew")
 
         # add set rotation button
-        self.btSetRotation = tk.Button(self.master, text="Set rotation", bg="#e2ac4d", font=("Helvetic", 11), command=self.set_rotation)
-        self.btSetRotation.grid(row=2, column=0, sticky="nsew")
-
-        # add check origin button
-        self.btCheckOrigin = tk.Button(self.master, text="Check origin", bg="#e2ac4d", font=("Helvetic", 11), command=self.check_origin)
-        self.btCheckOrigin.grid(row=3, column=1, sticky="nsew")
+        self.btSetRotation = tk.Button(self.master, text="Set rotation", bg="#e2ac4d", 
+                                       font=("Helvetic", 11), command=self.set_rotation)
+        self.btSetRotation.grid(row=2, column=1, sticky="nsew")
 
         # add set origin button
-        self.btSetOrigin = tk.Button(self.master, text="Set origin", bg="#e2ac4d", font=("Helvetic", 11), command=self.set_origin)
+        self.btSetOrigin = tk.Button(self.master, text="Set origin", bg="#e2ac4d", 
+                                     font=("Helvetic", 11), command=self.set_origin)
         self.btSetOrigin.grid(row=3, column=0, sticky="nsew")
 
+        # add check origin button
+        self.btCheckOrigin = tk.Button(self.master, text="Check origin", bg="#e2ac4d", 
+                                       font=("Helvetic", 11), command=self.check_origin)
+        self.btCheckOrigin.grid(row=3, column=1, sticky="nsew")
+
         # add done button
-        self.btDone = tk.Button(self.master, text="done", bg="#e2ac4d", font=("Helvetica", 11), command=self.done)
+        self.btDone = tk.Button(self.master, text="done", bg="#e2ac4d", 
+                                font=("Helvetica", 11), command=self.done)
         self.btDone.grid(row=4, column=0, sticky="nsew")
 
         # add stop button in red color
-        self.btStop = tk.Button(self.master, text="Stop", bg="#ff0000", font=("Helvetica", 11), command=self.stop)
+        self.btStop = tk.Button(self.master, text="Stop", bg="#ff0000", 
+                                font=("Helvetica", 11), command=self.stop)
         self.btStop.grid(row=4, column=1, sticky="nsew")
+                
+        # make button for 1. calibration point on right side
+        self.btPoint1 = tk.Button(self.master, text="Point 1", bg="#43b0f1", 
+                                  command=self.store_point_1)
+        self.btPoint1.grid(row=2, column=8, sticky="E")
 
+        # add button for 2. calibration point on right side
+        self.btPoint2 = tk.Button(self.master, text="Point 2", background="#43b0f1", 
+                                  command=self.store_point_2)
+        self.btPoint2.grid(row=3, column=8, sticky="E")
+
+        # add button for 3. calibration point on right side
+        self.btPoint3 = tk.Button(self.master, text="Point 3", background="#43b0f1", 
+                                  command=self.store_point_3)
+        self.btPoint3.grid(row=4, column=8, sticky="E")
+
+        # ------------------ TERMINAL ------------------
+        # add terminal for user to see what is happening
+        self.terminal = tk.Text(self.master, height=10, width=55, bg="#bfecff", 
+                                font=("Helvetica", 13))
+        self.terminal.grid(row=0, column=2, columnspan=7, rowspan=5, sticky="nsw")
+    
+        # ------------------ SLIDERS ------------------
         # add slider for x axis on 1 decimal point
         self.xSlider = tk.Scale(self.master, from_=450, to=-450, length=1000, orient=tk.HORIZONTAL,  
-                                resolution=SLIDER_RESOLUTION, label="X axis (mm)", command=self.move_X, bg="#bfecff")
+                                resolution=XY_SLIDER_RESOLUTION, label="X axis (mm)", 
+                                command=self.move_X, bg="#bfecff")
         self.xSlider.bind("<Button-1>", self.click_X)
         self.xSlider.grid(row=8, column=0, columnspan=10)
 
         # add slider for y axis on 1 decimal point
         self.ySlider = tk.Scale(self.master, from_=450, to=-450, length=1000, orient=tk.HORIZONTAL,
-                                resolution=SLIDER_RESOLUTION, label="Y axis (mm)", command=self.move_Y, bg="#bfecff")
+                                resolution=XY_SLIDER_RESOLUTION, label="Y axis (mm)", 
+                                command=self.move_Y, bg="#bfecff")
         self.ySlider.grid(row=9, column=0, columnspan=10)
 
         # add slider for z axis on 1 decimal point
         self.zSlider = tk.Scale(self.master, from_=200, to=-100, length=200, orient=tk.VERTICAL,
-                                resolution=0.1, label="Z (mm)", command=self.move_Z, bg="#bfecff")
+                                resolution=Z_SLIDER_RESOLUTION, label="Z (mm)", 
+                                command=self.move_Z, bg="#bfecff")
         self.zSlider.bind("<Button-1>", self.click_Z)
         self.zSlider.grid(row=0, column=9, rowspan=7, columnspan=2)
-        
-        # make button for 1. calibration point on right side
-        self.btPoint1 = tk.Button(self.master, text="Point 1", bg="#43b0f1", command=self.store_point_1)
-        self.btPoint1.grid(row=2, column=8, sticky="E")
 
-        # add button for 2. calibration point on right side
-        self.btPoint2 = tk.Button(self.master, text="Point 2", background="#43b0f1", command=self.store_point_2)
-        self.btPoint2.grid(row=3, column=8, sticky="E")
-
-        # add button for 3. calibration point on right side
-        self.btPoint3 = tk.Button(self.master, text="Point 3", background="#43b0f1", command=self.store_point_3)
-        self.btPoint3.grid(row=4, column=8, sticky="E")
-
-        # add terminal for user to see what is happening
-        self.terminal = tk.Text(self.master, height=10, width=55, bg="#bfecff", font=("Helvetica", 13))
-        self.terminal.grid(row=0, column=2, columnspan=7, rowspan=5, sticky="nsw")
-    
+        # ------------------ INITIALIZE CODE ------------------
         # check if there is pickle file with points and read it
         if os.path.isfile(self.pointPklPath):
         # read points pickle file
@@ -146,72 +166,13 @@ class App:
         else:
             self.print_terminal("No pickle file with points\n")
 
-        if self.robot == None:
-            self.print_terminal("No robot connected\n")
-        else:
-            self.print_terminal("Robot connected\n")
+        if self.robot != None:
             self.refresh_slider()
-
-
-    def stop(self):
-        # stop robot
-        self.print_terminal("Stop,  NEED TO FINISH IT\n")
-        self.robot.stop()
-        self.master.attributes("-disabled", True)
-        self.master.after(0, self.master.destroy)
-
-    def start(self):
-        if self.robot == None:
-            pass
+            self.print_terminal("Robot connected\n")
         else:
-            self.robot.home()
-
-        self.refresh_slider()
-        # print start coordinates
-        self.print_terminal("Start coordinates: X: "+str(self.START_X)+" Y: "+str(self.START_Y)+" Z: "+str(self.START_Z)+"\n")
-        # set slider to start coordinates
-        self.xSlider.set(self.START_X)
-        self.ySlider.set(self.START_Y)
-        self.zSlider.set(self.START_Z)
-        # move robot to start coordinates in z axis
-        pass
-
-    def home(self):
-        self.print_terminal("Move robot to home position\n")
-        if self.robot == None:
-            return
-        else:
-            self.robot.home()
-        self.refresh_slider()
-        time.sleep(1)
-
-        self.robot.setWorldOffset([0, 0, 0, 0, 0, 0])
-
-        self.refresh_slider()
-
-    def check_points(self):
-        self.print_terminal("Check\n")
-        self.checkThread = threading.Thread(target=self.checkPoints)
-        self.checkThread.start()
-
-    def checkPoints(self):
-        self.btCheckPoints.config(relief=tk.SUNKEN)
-        if self.robot == None:
-            time.sleep(2)
             self.print_terminal("No robot connected\n")
-        else:
-            # Check teach points
-            self.robot.move(x = self.points[0][0], y = self.points[0][1], 
-                            z = self.points[0][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
-            time.sleep(1)
-            self.robot.move(x = self.points[1][0], y = self.points[1][1], 
-                            z = self.points[1][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
-            time.sleep(1)
-            self.robot.move(x = self.points[2][0], y = self.points[2][1], 
-                            z = self.points[2][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
-            time.sleep(1)
-        self.btCheckPoints.config(relief=tk.RAISED)
 
+    # ------------------------------ BUTTONS FUNCTIONS --------------------------------------------
     def coord(self):
         if self.COORD_SYSTEM == 0:
             self.print_terminal("Base coord\n")
@@ -236,6 +197,36 @@ class App:
         elif self.COORD_SYSTEM == -1:
             self.print_terminal("Finish with origin calibration\n")   
 
+    def start(self):
+        if self.robot != None:
+            self.robot.home()
+
+        self.refresh_slider()
+        # print start coordinates
+        self.print_terminal("Start coordinates: X: "+str(self.START_X)+" Y: "+str(self.START_Y)+" Z: "+str(self.START_Z)+"\n")
+        # set slider to start coordinates
+        self.xSlider.set(self.START_X)
+        self.ySlider.set(self.START_Y)
+        self.zSlider.set(self.START_Z)
+
+    def home(self):
+        self.print_terminal("Move robot to home position\n")
+        if self.robot == None:
+            self.robot.home()
+
+        self.robot.setWorldOffset([0, 0, 0, 0, 0, 0])
+        self.refresh_slider()
+
+    def check_points(self):
+        self.print_terminal("Check\n")
+        self.checkThread = threading.Thread(target=self.checkPoints)
+        self.checkThread.start()
+
+    def check_origin(self):
+        # make thread for checking origin
+        self.checkOriginThread = threading.Thread(target=self.checkOrigin)
+        self.checkOriginThread.start()
+   
     def set_rotation(self):
         if self.robot == None:
             self.coordOffset[3:] = self.robot.calibrateUserOrientationOffset()
@@ -261,14 +252,101 @@ class App:
             self.print_terminal("Origin offset set\n")
             self.USER_COORD = 0
         else:
-            self.print_terminal("Robot not connected\n")
-        
+            self.print_terminal("Robot not connected\n")    
 
-    def check_origin(self):
-        # make thread for checking origin
-        self.checkOriginThread = threading.Thread(target=self.checkOrigin)
-        self.checkOriginThread.start()
-    
+    def done(self):
+        # store points to pickle file
+        # check if all points are stored
+        if len(self.points) == 3:
+            with open(self.pointPklPath, 'wb') as f:
+                pickle.dump(self.points, f)
+            self.print_terminal("Points stored\n")
+        else:
+            self.print_terminal("Not all points are set\n")
+        
+        # store rotation and origin offset to pickle file
+        if len(self.coordOffset) == 6:
+            with open(self.coordOffPklPath, 'wb') as f:
+                pickle.dump(self.coordOffset, f)
+            self.print_terminal("Rotation and origin offset stored\n")
+        else:
+            self.print_terminal("Rotation and origin offset not set\n")
+
+        # disabel master window from clicking
+        self.master.attributes("-disabled", True)
+
+        #Automatically close the window after 3 seconds
+        self.master.after(3000, self.master.destroy)
+
+    def stop(self):
+        # stop robot
+        self.print_terminal("Stop,  NEED TO FINISH IT\n")
+        self.robot.stop()
+        self.master.attributes("-disabled", True)
+        self.master.after(0, self.master.destroy)
+
+    def store_point_1(self):
+        self.storePoint(1)
+        self.btPoint1.config(bg="light green")
+
+    def store_point_2(self):
+        self.storePoint(2)
+        self.btPoint2.config(bg="light green")
+
+    def store_point_3(self):
+        self.storePoint(3)
+        self.btPoint3.config(bg="light green")
+
+    def move_X(self, value):
+        if self._job:
+            self.master.after_cancel(self._job)
+        self._job = self.master.after(200, self.moveX)
+
+    def moveX(self):
+        self._job = None
+        if self.robot != None:
+            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=True)
+        else:
+            self.print_terminal("Cant move robot, no robot connected\n")
+
+    def move_Y(self, value):
+        if self._job:
+            self.master.after_cancel(self._job)
+        self._job = self.master.after(200, self.moveY)
+
+    def moveY(self):
+        self._job = None
+        if self.robot == None:
+            self.print_terminal("Cant move robot, no robot connected\n")
+            return
+        else:
+            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=True)
+        print("move Y: "+str(self.ySlider.get()))
+
+    def move_Z(self, value):
+        if self._job:
+            self.master.after_cancel(self._job)
+        self._job = self.master.after(200, self.moveZ)
+
+    # --------------------------- THREAD FUNCTIONS ------------------------------------------------   
+    def checkPoints(self):
+        self.btCheckPoints.config(relief=tk.SUNKEN)
+        if self.robot != None:
+             # Check teach points
+            self.robot.move(x = self.points[0][0], y = self.points[0][1], 
+                            z = self.points[0][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
+            time.sleep(1)
+            self.robot.move(x = self.points[1][0], y = self.points[1][1], 
+                            z = self.points[1][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
+            time.sleep(1)
+            self.robot.move(x = self.points[2][0], y = self.points[2][1], 
+                            z = self.points[2][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
+            time.sleep(1)
+        else:
+            time.sleep(2)
+            self.print_terminal("No robot connected\n")
+        self.btCheckPoints.config(relief=tk.RAISED)
+
     def checkOrigin(self):
         # set button check origin to sunken
         self.btCheckOrigin.config(relief=tk.SUNKEN)
@@ -305,66 +383,6 @@ class App:
         self.print_terminal("Check origin\n")
         self.btCheckOrigin.config(relief=tk.RAISED)
 
-    def done(self):
-        # store points to pickle file
-        # check if all points are stored
-        if len(self.points) == 3:
-            with open(self.pointPklPath, 'wb') as f:
-                pickle.dump(self.points, f)
-            self.print_terminal("Points stored\n")
-        else:
-            self.print_terminal("Not all points are set\n")
-        
-        # store rotation and origin offset to pickle file
-        if len(self.coordOffset) == 6:
-            with open(self.coordOffPklPath, 'wb') as f:
-                pickle.dump(self.coordOffset, f)
-            self.print_terminal("Rotation and origin offset stored\n")
-        else:
-            self.print_terminal("Rotation and origin offset not set\n")
-
-        # disabel master window from clicking
-        self.master.attributes("-disabled", True)
-
-        #Automatically close the window after 3 seconds
-        self.master.after(3000, self.master.destroy)
-
-    def move_X(self, value):
-        if self._job:
-            self.master.after_cancel(self._job)
-        self._job = self.master.after(200, self.moveX)
-
-    def moveX(self):
-        self._job = None
-        if self.robot == None:
-            self.print_terminal("Cant move robot, no robot connected\n")
-            return
-        else:
-            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=True)
-        print("move X: "+str(self.xSlider.get()))
-
-    def click_X(self, event):
-        print("click X")
-
-    def move_Y(self, value):
-        if self._job:
-            self.master.after_cancel(self._job)
-        self._job = self.master.after(200, self.moveY)
-
-    def moveY(self):
-        self._job = None
-        if self.robot == None:
-            self.print_terminal("Cant move robot, no robot connected\n")
-            return
-        else:
-            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=True)
-        print("move Y: "+str(self.ySlider.get()))
-
-    def move_Z(self, value):
-        if self._job:
-            self.master.after_cancel(self._job)
-        self._job = self.master.after(200, self.moveZ)
-    
     def moveZ(self):
         self._job = None
         if self.robot == None:
@@ -374,21 +392,7 @@ class App:
             self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=True)
         print("move Z: "+str(self.zSlider.get()))
 
-    def click_Z(self, event):
-        print("click Z")
-
-    def store_point_1(self):
-        self.storePoint(1)
-        self.btPoint1.config(bg="light green")
-
-    def store_point_2(self):
-        self.storePoint(2)
-        self.btPoint2.config(bg="light green")
-
-    def store_point_3(self):
-        self.storePoint(3)
-        self.btPoint3.config(bg="light green")
-    
+    # ---------------------------- FUNCTIONS IN BACKGROUND ----------------------------------------
     def storePoint(self, point):
         # overwrite list of coordinate to points on frst place
         if self.robot == None:
@@ -434,6 +438,7 @@ class App:
     def click_Z(self, event):
         self.CLICK_XZ = 1 # 1 = button for z
     
+    # ---------------------------- REUSABLE FUNCTIONS ---------------------------------------------
     def print_terminal(self, text):
         self.terminal.insert(tk.END, text)
         self.terminal.see(tk.END)
@@ -447,6 +452,7 @@ class App:
             self.ySlider.set(self.robotPosition[1])
             self.zSlider.set(self.robotPosition[2])
             print(self.robotPosition)  
+
 # ---------------------------- MAIN --------------------------------------------
 # make main for testing gui
 def main():
