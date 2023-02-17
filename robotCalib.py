@@ -146,12 +146,18 @@ class App:
         else:
             self.print_terminal("No pickle file with points\n")
 
+        if self.robot == None:
+            self.print_terminal("No robot connected\n")
+        else:
+            self.print_terminal("Robot connected\n")
+            self.refresh_slider()
+
     def stop(self):
         # stop robot
         self.print_terminal("Stop,  NEED TO FINISH IT\n")
 
         self.master.attributes("-disabled", True)
-        self.master.after(3000, self.master.destroy)
+        self.master.after(0, self.master.destroy)
 
     def start(self):
         if self.robot == None:
@@ -170,7 +176,7 @@ class App:
         pass
 
     def home(self):
-        self.printTerminal("Move robot to home position\n")
+        self.print_terminal("Move robot to home position\n")
         if self.robot == None:
             return
         else:
@@ -321,6 +327,11 @@ class App:
 
     def moveX(self):
         self._job = None
+        if self.robot == None:
+            self.print_terminal("Cant move robot, no robot connected\n")
+            return
+        else:
+            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=100, wait=True)
         print("move X: "+str(self.xSlider.get()))
 
     def click_X(self, event):
@@ -333,6 +344,11 @@ class App:
 
     def moveY(self):
         self._job = None
+        if self.robot == None:
+            self.print_terminal("Cant move robot, no robot connected\n")
+            return
+        else:
+            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=100, wait=True)
         print("move Y: "+str(self.ySlider.get()))
 
     def move_Z(self, value):
@@ -342,6 +358,11 @@ class App:
     
     def moveZ(self):
         self._job = None
+        if self.robot == None:
+            self.print_terminal("Cant move robot, no robot connected\n")
+            return
+        else:
+            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=100, wait=True)
         print("move Z: "+str(self.zSlider.get()))
 
     def click_Z(self, event):
@@ -349,12 +370,15 @@ class App:
 
     def store_point_1(self):
         self.storePoint(1)
+        self.btPoint1.config(bg="light green")
 
     def store_point_2(self):
         self.storePoint(2)
+        self.btPoint1.config(bg="light green")
 
     def store_point_3(self):
         self.storePoint(3)
+        self.btPoint1.config(bg="light green")
     
     def storePoint(self, point):
         # overwrite list of coordinate to points on frst place
@@ -413,8 +437,7 @@ class App:
             self.xSlider.set(self.robotPosition[0])
             self.ySlider.set(self.robotPosition[1])
             self.zSlider.set(self.robotPosition[2])
-            print(self.robotPosition)
-    
+            print(self.robotPosition)  
 # ---------------------------- MAIN --------------------------------------------
 def main():
     logger = logging.getLogger()
@@ -425,9 +448,10 @@ def main():
 
 # make main for testing gui
 def mainTest():
-    gui = tk.Tk()
-    app = App(gui, robot=None)
-    gui.mainloop()
+    logger = logging.getLogger()
+    robot = vr.Robot(ROBOT_IP, logger)
+    app = App(tk.Tk(), robot=robot)
+    app.master.mainloop()
     
 
 if __name__ == "__main__":
