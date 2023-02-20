@@ -404,8 +404,11 @@ class App:
             # print start coordinates
             self.print_terminal("Start coordinates: X: "+str(self.START_X)+" Y: "+str(self.START_Y)+" Z: "+str(self.START_Z)+"\n")
             # set slider to start coordinates
-            self.robot.move(self.START_X, self.START_Y, self.zSlider.get(), 0, 0, 0)
-            self.robot.move(self.START_X, self.START_Y, self.START_Z, 0, 0, 0)
+            self.robot.move(self.START_X, self.START_Y, self.zSlider.get(), 0, 0, 0, speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
+            while self.robot.getIsMoving() != False:
+                time.sleep(1)
+            self.robot.move(self.START_X, self.START_Y, self.START_Z, 0, 0, 0, speed=self.robotSpeed, mvacc=self.mvacc)
+            time.sleep(0.5)
             while self.robot.getIsMoving() != False:
                 time.sleep(0.5)
             time.sleep(0.5)
