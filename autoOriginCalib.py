@@ -26,7 +26,7 @@ if frame is None:
 
 
 def dist(p1):
-    return((p1[0]**2+p1[1])**2)**0.5
+    return ((p1[0]**2+p1[1])**2)**0.5
 
 
 def detectCheckerBoard(image, grayImage, criteria, boardDimension):
@@ -44,20 +44,22 @@ def detectCheckerBoard(image, grayImage, criteria, boardDimension):
         xTopL = corners[0][0][0]
         yTopL = corners[0][0][1]
         cv2.putText(image, "TopLeft", (int(xTopL), int(yTopL)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2) # Print "TopLeft" near the circle
-        cv2.circle(image, (int(xTopL), int(yTopL)), 7, (0, 0, 255), 2) # Draw a circle on the corner
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)  # Print "TopLeft" near the circle
+        cv2.circle(image, (int(xTopL), int(yTopL)), 7,
+                   (0, 0, 255), 2)  # Draw a circle on the corner
 
         # Top right corner
         xTopR = corners[NUM_SQUARES][0][0]
         yTopR = corners[NUM_SQUARES][0][1]
         cv2.putText(image, "TopRight", (int(xTopR), int(yTopR)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2) # Print "TopRight" near the circle
-        cv2.circle(image, (int(xTopR), int(yTopR)), 7, (0, 255, 255), 2) # Draw a circle on the corner
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)  # Print "TopRight" near the circle
+        cv2.circle(image, (int(xTopR), int(yTopR)), 7,
+                   (0, 255, 255), 2)  # Draw a circle on the corner
 
-        with open("corners.json", "w") as f:
+        with open(CORNERS_DATA_PATH, "w") as f:
             json.dump({
-                "origin" : [int(xTopL), int(yTopL)],
-                "x" : [int(xTopR), int(yTopR)]
+                "origin": [int(xTopL), int(yTopL)],
+                "x": [int(xTopR), int(yTopR)]
             }, f)
 
     return image, ret
