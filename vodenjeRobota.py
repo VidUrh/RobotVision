@@ -76,6 +76,12 @@ class Robot:
     def setState(self, state=0):
         self.robot.set_state(state)
 
+    def getState(self):
+        return self.robot.get_state()
+    
+    def getIsMoving(self):
+        return self.robot.get_is_moving()
+
     def setWorldOffset(self, offset, is_radian=False):
         ret =  self.robot.set_world_offset(offset, is_radian)
         self.setState(0)
