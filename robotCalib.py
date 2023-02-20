@@ -49,6 +49,7 @@ class App:
         # Make 10x10 grid
         for i in range(10):
             self.master.columnconfigure(i, weight=1)
+        for i in range(11):
             self.master.rowconfigure(i, weight=1)
 
     	# Connect arrow keys to sliders when you are in app
@@ -102,21 +103,36 @@ class App:
         self.btStop = tk.Button(self.master, text="Stop", bg="#ff0000", 
                                 font=("Helvetica", 11), command=self.stop)
         self.btStop.grid(row=4, column=1, sticky="nsew")
-                
+                        
         # make button for 1. calibration point on right side
         self.btPoint1 = tk.Button(self.master, text="Point 1", bg="#43b0f1", 
                                   command=self.store_point_1)
-        self.btPoint1.grid(row=2, column=8, sticky="E")
+        self.btPoint1.grid(row=0, column=8, sticky="E")
+
+        # make button for move 1. point on right side
+        self.btMove1 = tk.Button(self.master, text="Move 1", bg="#43b0f1",
+                                    command=self.move_point_1)
+        self.btMove1.grid(row=1, column=8, sticky="E")
 
         # add button for 2. calibration point on right side
         self.btPoint2 = tk.Button(self.master, text="Point 2", background="#43b0f1", 
                                   command=self.store_point_2)
-        self.btPoint2.grid(row=3, column=8, sticky="E")
+        self.btPoint2.grid(row=2, column=8, sticky="E")
+
+        # make button for move 2. point on right side
+        self.btMove2 = tk.Button(self.master, text="Move 2", bg="#43b0f1",
+                                    command=self.move_point_2)
+        self.btMove2.grid(row=3, column=8, sticky="E")
 
         # add button for 3. calibration point on right side
         self.btPoint3 = tk.Button(self.master, text="Point 3", background="#43b0f1", 
                                   command=self.store_point_3)
         self.btPoint3.grid(row=4, column=8, sticky="E")
+
+        # make button for move 3. point on right side
+        self.btMove3 = tk.Button(self.master, text="Move 3", bg="#43b0f1",
+                                    command=self.move_point_3)
+        self.btMove3.grid(row=5, column=8, sticky="E")
 
         # ------------------ TERMINAL ------------------
         # add terminal for user to see what is happening
@@ -156,11 +172,14 @@ class App:
                         self.print_terminal("Point "+str(self.readPoints.index(point)+1)+": "+str(point)+"\n")
                         self.rotationCalibPoints[self.readPoints.index(point)] = point
                         if self.readPoints.index(point) == 0:
-                            self.btPoint1.config(bg="#e2ac4d")
+                            self.btPoint1.config(bg="#e2ac4d")               
+                            self.btMove1.config(bg="light green")
                         elif self.readPoints.index(point) == 1:
                             self.btPoint2.config(bg="#e2ac4d")
+                            self.btMove2.config(bg="light green")
                         elif self.readPoints.index(point) == 2:
                             self.btPoint3.config(bg="#e2ac4d")
+                            self.btMove3.config(bg="light green")
                     else:
                         self.print_terminal("Point "+str(self.readPoints.index(point)+1)+": None\n")
         else:
@@ -214,7 +233,6 @@ class App:
             self.print_terminal("No robot connected\n")
 
     def home(self):
-        self.print_terminal("Move robot to home position\n")
         if self.robot != None:
             self.homeThread = threading.Thread(target=self.home_thread)
             self.homeThread.start()
@@ -238,7 +256,7 @@ class App:
             self.coordOffset[3:] = self.robot.calibrateUserOrientationOffset(self.rotationCalibPoints)[1]
             print(self.coordOffset)
             self.print_terminal("Rotation offset roll: "+str(self.coordOffset[3])+" pitch: "+str(self.coordOffset[4])+" yaw: "+str(self.coordOffset[5])+"\n")
-            self.robot.setWorldOffset(self.coordOffset)
+            #self.robot.setWorldOffset(self.coordOffset)
             self.btCoord.config(text="Rotation offset", bg="red")
             self.btSetRotation.config(bg="light green")
             self.USER_COORD = -1
@@ -249,6 +267,8 @@ class App:
 
     def set_origin(self):
         if self.robot != None:
+            self.robot.setWorldOffset(self.coordOffset)
+            self.refresh_slider()
             self.coordOffset[:3] = self.robot.getPosition()[:3]    
             if self.coordOffset[3] < 182 or self.coordOffset[3] > 178:
                 self.coordOffset[0] = -self.coordOffset[0]
@@ -298,14 +318,24 @@ class App:
     def store_point_1(self):
         self.storePoint(1)
         self.btPoint1.config(bg="light green")
+    
+    def move_point_1(self):
+        self.movePoint1Thread = threading.Thread(target=self.movePoint, args=(1,))
+        self.movePoint1Thread.start()
 
     def store_point_2(self):
         self.storePoint(2)
         self.btPoint2.config(bg="light green")
+    
+    def move_point_2(self):
+        self.movePoint(2)
 
     def store_point_3(self):
         self.storePoint(3)
         self.btPoint3.config(bg="light green")
+
+    def move_point_3(self):
+        self.movePoint(3)
 
     def move_X(self, value):
         if self._job:
@@ -427,6 +457,40 @@ class App:
         else:
             self.print_terminal("No robot connected\n")
         self.btHome.config(relief=tk.RAISED)
+
+    
+    def movePoint(self, point):
+        if point == 1:
+            self.btMove1.config(relief=tk.SUNKEN)
+        elif point == 2:
+            self.btMove2.config(relief=tk.SUNKEN)
+        elif point == 3:
+            self.btMove3.config(relief=tk.SUNKEN)
+
+        if self.COORD_SYSTEM == 0:
+            if self.robot != None:
+                if self.rotationCalibPoints[point-1] != None:
+                    self.print_terminal("Move to point 1\n")
+                    self.robot.move(x = self.rotationCalibPoints[point-1][0], y = self.rotationCalibPoints[point-1][1], 
+                                    z = self.rotationCalibPoints[point-1][2], speed=self.robotSpeed, 
+                                    mvacc=self.mvacc, wait=False)
+                    time.sleep(0.5)
+                    while self.robot.getIsMoving() == True:
+                        time.sleep(0.2)
+                    self.refresh_slider()
+                else:
+                    self.print_terminal("Point 1 not set\n")
+            else:
+                self.print_terminal("Cant move robot, no robot connected\n")
+        elif self.COORD_SYSTEM == 1:
+            self.print_terminal("izberi bazni koordinatni sistem\n")
+
+        if point == 1:
+            self.btMove1.config(relief=tk.RAISED)
+        elif point == 2:
+            self.btMove2.config(relief=tk.RAISED)
+        elif point == 3:
+            self.btMove3.config(relief=tk.RAISED)
 
     # ---------------------------- FUNCTIONS IN BACKGROUND ----------------------------------------
     def storePoint(self, point):
