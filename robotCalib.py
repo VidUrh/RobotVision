@@ -8,9 +8,9 @@ import pickle
 import os
 
 # Constants
-START_X = 150
-START_Y = -100
-START_Z = 0 # in mm negative value is up
+START_X = 100
+START_Y = -150
+START_Z = 0
 
 XY_SLIDER_RESOLUTION = 0.5 # in mm
 Z_SLIDER_RESOLUTION  = 0.1 # in mm
@@ -21,10 +21,10 @@ class App:
         # ------------------ VARIABLES ------------------
         self.robot = robot
         # make empty list for 3 list of coordinates
-        self.originPoints = [None] * 3  # place for points for rotation calibration
+        self.rotationCalibPoints = [None] * 3  # place for points for rotation calibration
         self.coordOffset  = [None] * 6  # place for coord offset
 
-        self.robotSpeed = 120 # in mm/s
+        self.robotSpeed = 60 # in mm/s
         self.mvacc      = 500 # in mm/s^2
 
         self.CLICK_XZ     = 0 # 0 for x, 1 for z (for connecting arrow keys to x or z slider)
@@ -154,7 +154,7 @@ class App:
                 for point in self.readPoints:
                     if point != None:
                         self.print_terminal("Point "+str(self.readPoints.index(point)+1)+": "+str(point)+"\n")
-                        self.originPoints[self.readPoints.index(point)] = point
+                        self.rotationCalibPoints[self.readPoints.index(point)] = point
                         if self.readPoints.index(point) == 0:
                             self.btPoint1.config(bg="#e2ac4d")
                         elif self.readPoints.index(point) == 1:
@@ -172,42 +172,35 @@ class App:
         else:
             self.print_terminal("No robot connected\n")
 
+        self.coord()
     # ------------------------------ BUTTONS FUNCTIONS --------------------------------------------
     def coord(self):
-        if self.COORD_SYSTEM == 0:
+        if self.COORD_SYSTEM == 1:
             self.print_terminal("Base coord\n")
             self.btCoord.config(text="Base coord", bg="#43b0f1")
+            self.robot.setWorldOffset([0, 0, 0, 0, 0, 0])
             if self.robot != None:
-                self.xSlider.set(self.robot.getPosition()[0])
-                self.ySlider.set(self.robot.getPosition()[1])
-                self.zSlider.set(self.robot.getPosition()[2])
+                self.refresh_slider()
             
-            self.COORD_SYSTEM = 1
+            self.COORD_SYSTEM = 0
 
-        elif self.COORD_SYSTEM == 1:
+        elif self.COORD_SYSTEM == 0:
             self.print_terminal("User coord\n")
             self.btCoord.config(text="User coord", bg="light green")
+            self.robot.setWorldOffset(self.coordOffset)
             if self.robot != None:
-                self.xSlider.set(self.robot.getPosition()[3])
-                self.ySlider.set(self.robot.getPosition()[4])
-                self.zSlider.set(self.robot.getPosition()[5])
+                self.refresh_slider()
 
-            self.COORD_SYSTEM = 0
+            self.COORD_SYSTEM = 1
 
         elif self.COORD_SYSTEM == -1:
             self.print_terminal("Finish with origin calibration\n")   
 
     def start(self):
         if self.robot != None:
-            self.robot.home()
-
-            self.refresh_slider()
-            # print start coordinates
-            self.print_terminal("Start coordinates: X: "+str(self.START_X)+" Y: "+str(self.START_Y)+" Z: "+str(self.START_Z)+"\n")
-            # set slider to start coordinates
-            self.xSlider.set(self.START_X)
-            self.ySlider.set(self.START_Y)
-            self.zSlider.set(self.START_Z)
+            self.print_terminal("Start\n")
+            self.startThread = threading.Thread(target=self.start_thread)
+            self.startThread.start()
         else:
             self.print_terminal("No robot connected\n")
 
@@ -215,7 +208,6 @@ class App:
         self.print_terminal("Move robot to home position\n")
         if self.robot != None:
             self.robot.home()
-            self.robot.setWorldOffset([0, 0, 0, 0, 0, 0])
         
         self.refresh_slider()
 
@@ -233,8 +225,10 @@ class App:
         self.checkOriginThread.start()
    
     def set_rotation(self):
+        self.coordOffset = [0, 0, 0, 0, 0, 0]
         if self.robot != None:
-            self.coordOffset[3:] = self.robot.calibrateUserOrientationOffset()
+            self.coordOffset[3:] = self.robot.calibrateUserOrientationOffset(self.rotationCalibPoints)[1]
+            print(self.coordOffset)
             self.print_terminal("Rotation offset roll: "+str(self.coordOffset[3])+" pitch: "+str(self.coordOffset[4])+" yaw: "+str(self.coordOffset[5])+"\n")
             self.robot.setWorldOffset(self.coordOffset)
             self.btCoord.config(text="Rotation offset", bg="red")
@@ -247,24 +241,24 @@ class App:
     def set_origin(self):
         if self.robot != None:
             self.coordOffset[:3] = self.robot.getPosition()[:3]    
+            if self.coordOffset[3] < 182 or self.coordOffset[3] > 178:
+                self.coordOffset[0] = -self.coordOffset[0]
+                self.coordOffset[1] = -self.coordOffset[1]
+                self.coordOffset[2] = -self.coordOffset[2]
+
             self.print_terminal("Robot coordinates: X: "+str(self.coordOffset[0])+
                                 " Y: "+str(self.coordOffset[1])+" Z: "+str(self.coordOffset[2])+"\n")
-            self.robot.setWorldOffset([-self.coordOffset[0], -self.coordOffset[1], -self.coordOffset[2], 
-                                        self.coordOffset[3], self.coordOffset[4], self.coordOffset[5]])
-            self.refresh_slider()
-
-            self.btCoord.config(text="Origin coord", bg="light green")
-            self.print_terminal("Origin offset set\n")
-            self.USER_COORD = 0
+            self.robot.setWorldOffset(self.coordOffset)
+            self.coord()
         else:
             self.print_terminal("Robot not connected\n")    
 
     def done(self):
         # store points to pickle file
         # check if all points are stored
-        if None not in self.originPoints:
+        if None not in self.rotationCalibPoints:
             with open(self.pointPklPath, 'wb') as f:
-                pickle.dump(self.originPoints, f)
+                pickle.dump(self.rotationCalibPoints, f)
             self.print_terminal("Points stored\n")
         else:
             self.print_terminal("Not all points are set\n")
@@ -311,7 +305,7 @@ class App:
     def moveX(self):
         self._job = None
         if self.robot != None:
-            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=True)
+            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=False)
         else:
             self.print_terminal("Cant move robot, no robot connected\n")
 
@@ -322,11 +316,10 @@ class App:
 
     def moveY(self):
         self._job = None
-        if self.robot == None:
-            self.print_terminal("Cant move robot, no robot connected\n")
-            return
+        if self.robot != None:
+            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=False)
         else:
-            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=True)
+            self.print_terminal("Cant move robot, no robot connected\n")
         print("move Y: "+str(self.ySlider.get()))
 
     def move_Z(self, value):
@@ -336,25 +329,24 @@ class App:
 
     def moveZ(self):
         self._job = None
-        if self.robot == None:
-            self.print_terminal("Cant move robot, no robot connected\n")
-            return
+        if self.robot != None:
+            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=False)
         else:
-            self.robot.move(x = self.xSlider.get(), y = self.ySlider.get(), z = self.zSlider.get(), speed=50, mvacc=self.mvacc, wait=True)
+            self.print_terminal("Cant move robot, no robot connected\n")
         print("move Z: "+str(self.zSlider.get()))
 
     # --------------------------- THREAD FUNCTIONS ------------------------------------------------   
     def checkPoints(self):
         self.btCheckPoints.config(relief=tk.SUNKEN)
         # Check teach points
-        self.robot.move(x = self.originPoints[0][0], y = self.originPoints[0][1], 
-                        z = self.originPoints[0][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
+        self.robot.move(x = self.rotationCalibPoints[0][0], y = self.rotationCalibPoints[0][1], 
+                        z = self.rotationCalibPoints[0][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
         time.sleep(1)
-        self.robot.move(x = self.originPoints[1][0], y = self.originPoints[1][1], 
-                        z = self.originPoints[1][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
+        self.robot.move(x = self.rotationCalibPoints[1][0], y = self.rotationCalibPoints[1][1], 
+                        z = self.rotationCalibPoints[1][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
         time.sleep(1)
-        self.robot.move(x = self.originPoints[2][0], y = self.originPoints[2][1], 
-                        z = self.originPoints[2][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
+        self.robot.move(x = self.rotationCalibPoints[2][0], y = self.rotationCalibPoints[2][1], 
+                        z = self.rotationCalibPoints[2][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
         time.sleep(1)
         self.btCheckPoints.config(relief=tk.RAISED)
 
@@ -367,9 +359,9 @@ class App:
             self.x = 0
             self.y = 0
             self.z = -2
-            self.robot.move(x = 0, y = 0, z = -5, speed=self.robotSpeed, wait=True)
+            self.robot.move(x = 0, y = 0, z = -2, speed=self.robotSpeed, wait=True)
             for i in range(0, 6):
-                self.robot.move(x = (self.x+(i*CALIBRATION_SQUARE_SIZE*1000)), y = self.y, z = self.z, speed=self.robotSpeed, wait=True)
+                self.robot.move(x = (self.x-(i*CALIBRATION_SQUARE_SIZE*1000)), y = self.y, z = self.z, speed=self.robotSpeed, wait=True)
                 # Wait for robot to move
                 time.sleep(0.5)
 
@@ -381,7 +373,7 @@ class App:
                 time.sleep(0.5)
 
             self.robot.move(x = 0, y = 0, speed=100, wait=True)
-            self.robot.move(x = (6*CALIBRATION_SQUARE_SIZE*1000), y = (6*CALIBRATION_SQUARE_SIZE*1000), z = self.z, speed=100, wait=True)
+            self.robot.move(x = -(6*CALIBRATION_SQUARE_SIZE*1000), y = -(6*CALIBRATION_SQUARE_SIZE*1000), z = self.z, speed=100, wait=True)
             time.sleep(5)
 
             self.robot.move(x = 0, y = 0, speed=100, wait=True)
@@ -394,6 +386,25 @@ class App:
         # set button check origin to raised
         self.btCheckOrigin.config(relief=tk.RAISED)
 
+    def start_thread(self):
+        self.btStart.config(relief=tk.SUNKEN)
+
+        if self.robot != None:
+            self.refresh_slider()
+            # print start coordinates
+            self.print_terminal("Start coordinates: X: "+str(self.START_X)+" Y: "+str(self.START_Y)+" Z: "+str(self.START_Z)+"\n")
+            # set slider to start coordinates
+            self.robot.move(self.START_X, self.START_Y, self.zSlider.get(), 0, 0, 0)
+            self.robot.move(self.START_X, self.START_Y, self.START_Z, 0, 0, 0)
+            while self.robot.getIsMoving() != False:
+                time.sleep(0.5)
+            time.sleep(0.5)
+            self.refresh_slider()
+        else:
+            self.print_terminal("No robot connected\n")
+        
+        self.btStart.config(relief=tk.RAISED)
+
     # ---------------------------- FUNCTIONS IN BACKGROUND ----------------------------------------
     def storePoint(self, point):
         # overwrite list of coordinate to points on frst place
@@ -401,8 +412,8 @@ class App:
             self.print_terminal("Cant get robot position, no robot connected\n")
             return
         else:
-            self.originPoints[point-1] = self.robot.getPosition()
-            self.print_terminal("Point "+str(point)+" stored: "+str(self.originPoints[point-1])+"\n")
+            self.rotationCalibPoints[point-1] = self.robot.getPosition()
+            self.print_terminal("Point "+str(point)+" stored: "+str(self.rotationCalibPoints[point-1])+"\n")
 
     def on_key_press_x_or_z(self, event):
         if self.CLICK_XZ == 0:
@@ -468,5 +479,5 @@ def appTest():
     app.master.mainloop()
 
 if __name__ == "__main__":
-    #main()
-    appTest()
+    main()
+    #appTest()
