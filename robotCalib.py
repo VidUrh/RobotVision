@@ -25,7 +25,7 @@ class App:
         self.coordOffset  = [None] * 6  # place for coord offset
 
         self.robotSpeed = 60 # in mm/s
-        self.mvacc      = 500 # in mm/s^2
+        self.mvacc      = 250 # in mm/s^2
 
         self.CLICK_XZ     = 0 # 0 for x, 1 for z (for connecting arrow keys to x or z slider)
         self.COORD_SYSTEM = 1 # 0 for base, 1 for user (for saving which coord is in use)
@@ -64,37 +64,37 @@ class App:
         self.btCoord.grid(row=0, column=0, columnspan=2, sticky="nsew")
 
         # add home button
-        self.btHome = tk.Button(self.master, text="Home", bg="#e2ac4d", 
+        self.btHome = tk.Button(self.master, text="Home", bg="#43b0f1", 
                                 font=("Helvetic", 11), command=self.home)
         self.btHome.grid(row=1, column=0, sticky="nsew")
 
         # add start button
-        self.btStart = tk.Button(self.master, text="Start", bg="#e2ac4d", 
+        self.btStart = tk.Button(self.master, text="Start", bg="#43b0f1", 
                                  font=("Helvetice", 11), command=self.start)
         self.btStart.grid(row=1, column=1, sticky="nsew")
 
         # add check points button
-        self.btCheckPoints = tk.Button(self.master, text="Check points", bg="#e2ac4d", 
+        self.btCheckPoints = tk.Button(self.master, text="Check points", bg="#43b0f1", 
                                        font=("Helvetic", 11), command=self.check_points)
         self.btCheckPoints.grid(row=2, column=0, sticky="nsew")
 
         # add set rotation button
-        self.btSetRotation = tk.Button(self.master, text="Set rotation", bg="#e2ac4d", 
+        self.btSetRotation = tk.Button(self.master, text="Set rotation", bg="#43b0f1", 
                                        font=("Helvetic", 11), command=self.set_rotation)
         self.btSetRotation.grid(row=2, column=1, sticky="nsew")
 
         # add set origin button
-        self.btSetOrigin = tk.Button(self.master, text="Set origin", bg="#e2ac4d", 
+        self.btSetOrigin = tk.Button(self.master, text="Set origin", bg="#43b0f1", 
                                      font=("Helvetic", 11), command=self.set_origin)
         self.btSetOrigin.grid(row=3, column=0, sticky="nsew")
 
         # add check origin button
-        self.btCheckOrigin = tk.Button(self.master, text="Check origin", bg="#e2ac4d", 
+        self.btCheckOrigin = tk.Button(self.master, text="Check origin", bg="#43b0f1", 
                                        font=("Helvetic", 11), command=self.check_origin)
         self.btCheckOrigin.grid(row=3, column=1, sticky="nsew")
 
         # add done button
-        self.btDone = tk.Button(self.master, text="done", bg="#e2ac4d", 
+        self.btDone = tk.Button(self.master, text="done", bg="#43b0f1", 
                                 font=("Helvetica", 11), command=self.done)
         self.btDone.grid(row=4, column=0, sticky="nsew")
 
@@ -166,6 +166,13 @@ class App:
         else:
             self.print_terminal("No pickle file with points\n")
 
+        if os.path.isfile(self.coordOffPklPath):
+            with open(self.coordOffPklPath, 'rb') as f:
+                self.coordOffset = pickle.load(f)
+                self.btSetOrigin.config(bg="#e2ac4d")
+                self.btSetRotation.config(bg="#e2ac4d")
+                self.print_terminal("Coord offset: "+str(self.coordOffset)+"\n")
+
         if self.robot != None:
             self.refresh_slider()
             self.print_terminal("Robot connected\n")
@@ -175,6 +182,7 @@ class App:
         self.coord()
     # ------------------------------ BUTTONS FUNCTIONS --------------------------------------------
     def coord(self):
+        # base coord
         if self.COORD_SYSTEM == 1:
             self.print_terminal("Base coord\n")
             self.btCoord.config(text="Base coord", bg="#43b0f1")
@@ -184,6 +192,7 @@ class App:
             
             self.COORD_SYSTEM = 0
 
+        # user coord
         elif self.COORD_SYSTEM == 0:
             self.print_terminal("User coord\n")
             self.btCoord.config(text="User coord", bg="light green")
@@ -207,9 +216,8 @@ class App:
     def home(self):
         self.print_terminal("Move robot to home position\n")
         if self.robot != None:
-            self.robot.home()
-        
-        self.refresh_slider()
+            self.homeThread = threading.Thread(target=self.home_thread)
+            self.homeThread.start()
 
     def check_points(self):
         if self.robot != None:
@@ -232,6 +240,7 @@ class App:
             self.print_terminal("Rotation offset roll: "+str(self.coordOffset[3])+" pitch: "+str(self.coordOffset[4])+" yaw: "+str(self.coordOffset[5])+"\n")
             self.robot.setWorldOffset(self.coordOffset)
             self.btCoord.config(text="Rotation offset", bg="red")
+            self.btSetRotation.config(bg="light green")
             self.USER_COORD = -1
             self.refresh_slider()
             self.print_terminal("Rotation offset set\n")
@@ -249,6 +258,7 @@ class App:
             self.print_terminal("Robot coordinates: X: "+str(self.coordOffset[0])+
                                 " Y: "+str(self.coordOffset[1])+" Z: "+str(self.coordOffset[2])+"\n")
             self.robot.setWorldOffset(self.coordOffset)
+            self.btSetOrigin.config(bg="light green")
             self.coord()
         else:
             self.print_terminal("Robot not connected\n")    
@@ -272,18 +282,18 @@ class App:
             self.print_terminal("Rotation and origin offset not set\n")
 
         # disabel master window from clicking
-        self.master.attributes("-disabled", True)
+        #self.master.attributes("-disabled", True)
 
         #Automatically close the window after 3 seconds
-        self.master.after(3000, self.master.destroy)
+        #self.master.after(3000, self.master.destroy)
 
     def stop(self):
         # stop robot
         self.print_terminal("Stop,  NEED TO FINISH IT\n")
         if self.robot != None:
             self.robot.stop()
-        self.master.attributes("-disabled", True)
-        self.master.after(0, self.master.destroy)
+        #self.master.attributes("-disabled", True)
+        #self.master.after(2000, self.master.destroy)
 
     def store_point_1(self):
         self.storePoint(1)
@@ -404,6 +414,16 @@ class App:
             self.print_terminal("No robot connected\n")
         
         self.btStart.config(relief=tk.RAISED)
+
+    def home_thread(self):
+        self.btHome.config(relief=tk.SUNKEN)
+        if self.robot != None:
+            self.print_terminal("Homing robot\n")
+            self.robot.home()
+            self.refresh_slider()
+        else:
+            self.print_terminal("No robot connected\n")
+        self.btHome.config(relief=tk.RAISED)
 
     # ---------------------------- FUNCTIONS IN BACKGROUND ----------------------------------------
     def storePoint(self, point):
