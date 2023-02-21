@@ -225,12 +225,15 @@ class App:
             self.print_terminal("Finish with origin calibration\n")   
 
     def start(self):
-        if self.robot != None:
-            self.print_terminal("Start\n")
-            self.startThread = threading.Thread(target=self.start_thread)
-            self.startThread.start()
-        else:
-            self.print_terminal("No robot connected\n")
+        if self.COORD_SYSTEM == 0:
+            if self.robot != None:
+                self.print_terminal("Start\n")
+                self.startThread = threading.Thread(target=self.start_thread)
+                self.startThread.start()
+            else:
+                self.print_terminal("No robot connected\n")
+        elif self.COORD_SYSTEM == 1:
+            self.print_terminal("Chose base coord system\n")
 
     def home(self):
         if self.robot != None:
@@ -238,12 +241,14 @@ class App:
             self.homeThread.start()
 
     def check_points(self):
-        if self.robot != None:
-            self.print_terminal("Check\n")
-            self.checkThread = threading.Thread(target=self.checkPoints)
-            self.checkThread.start()
-        else:
-            self.print_terminal("No robot connected\n")
+        if self.COORD_SYSTEM == 0:
+            if self.robot != None:
+                self.checkThread = threading.Thread(target=self.checkPoints)
+                self.checkThread.start()
+            else:
+                self.print_terminal("No robot connected\n")
+        elif self.COORD_SYSTEM == 1:
+            self.print_terminal("Chose base coord system\n")
 
     def check_origin(self):
         # make thread for checking origin
@@ -258,8 +263,8 @@ class App:
             self.print_terminal("Rotation offset roll: "+str(self.coordOffset[3])+" pitch: "+str(self.coordOffset[4])+" yaw: "+str(self.coordOffset[5])+"\n")
             #self.robot.setWorldOffset(self.coordOffset)
             self.btCoord.config(text="Rotation offset", bg="red")
+            self.btSetOrigin.config(bg="red")
             self.btSetRotation.config(bg="light green")
-            self.USER_COORD = -1
             self.refresh_slider()
             self.print_terminal("Rotation offset set\n")
         else:
@@ -267,7 +272,7 @@ class App:
 
     def set_origin(self):
         if self.robot != None:
-            self.robot.setWorldOffset(self.coordOffset)
+            self.robot.setWorldOffset([0, 0, 0, self.coordOffset[3], self.coordOffset[4], self.coordOffset[5]])
             self.refresh_slider()
             self.coordOffset[:3] = self.robot.getPosition()[:3]    
             if self.coordOffset[3] < 182 or self.coordOffset[3] > 178:
@@ -277,8 +282,8 @@ class App:
 
             self.print_terminal("Robot coordinates: X: "+str(self.coordOffset[0])+
                                 " Y: "+str(self.coordOffset[1])+" Z: "+str(self.coordOffset[2])+"\n")
-            self.robot.setWorldOffset(self.coordOffset)
             self.btSetOrigin.config(bg="light green")
+            self.COORD_SYSTEM = 0
             self.coord()
         else:
             self.print_terminal("Robot not connected\n")    
@@ -328,14 +333,16 @@ class App:
         self.btPoint2.config(bg="light green")
     
     def move_point_2(self):
-        self.movePoint(2)
+        self.movePoint2Thread = threading.Thread(target=self.movePoint, args=(2,))
+        self.movePoint2Thread.start()
 
     def store_point_3(self):
         self.storePoint(3)
         self.btPoint3.config(bg="light green")
 
     def move_point_3(self):
-        self.movePoint(3)
+        self.movePoint3Thread = threading.Thread(target=self.movePoint, args=(3,))
+        self.movePoint3Thread.start()
 
     def move_X(self, value):
         if self._job:
@@ -378,6 +385,7 @@ class App:
     # --------------------------- THREAD FUNCTIONS ------------------------------------------------   
     def checkPoints(self):
         self.btCheckPoints.config(relief=tk.SUNKEN)
+        self.print_terminal("Check points\n")
         # Check teach points
         self.robot.move(x = self.rotationCalibPoints[0][0], y = self.rotationCalibPoints[0][1], 
                         z = self.rotationCalibPoints[0][2], speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
@@ -457,7 +465,6 @@ class App:
         else:
             self.print_terminal("No robot connected\n")
         self.btHome.config(relief=tk.RAISED)
-
     
     def movePoint(self, point):
         if point == 1:
@@ -483,7 +490,7 @@ class App:
             else:
                 self.print_terminal("Cant move robot, no robot connected\n")
         elif self.COORD_SYSTEM == 1:
-            self.print_terminal("izberi bazni koordinatni sistem\n")
+            self.print_terminal("Chose base coord system\n")
 
         if point == 1:
             self.btMove1.config(relief=tk.RAISED)
