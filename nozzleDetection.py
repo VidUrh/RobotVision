@@ -10,7 +10,10 @@ import logging
 import time
 import threading
 import pickle
+import camera
 
+class CameraReadError(Exception):
+    pass
 
 class Nozzle:
     def __init__(self, position_x, position_y, rotation):
@@ -33,7 +36,7 @@ class NozzleDetector:
         self.setupCamera()
 
     def __del__(self):
-        self.cam.release()
+        del self.cam
         cv2.destroyAllWindows()
 
     def detectNozzles(self):
@@ -41,10 +44,8 @@ class NozzleDetector:
             Funkcija za detekcijo nozzlov na sliki.
             Vrne seznam objektov class-a Nozzle.
         """
-        ret, self.image = self.cam.read()
-        if ret == False:
-            logging.critical("Failed to read image")
-            return None
+        ret, self.image = self.cam.getUndistortedImage()
+        
         # transform to binary image
         transformed = self.transformImage(self.image)
 
@@ -70,40 +71,13 @@ class NozzleDetector:
         return None
 
     def setupCamera(self):
-        self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
-        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
-        self.cam.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
-
-        # Read camera calibration data
-        with open(CALIBRATION_DATA_PATH, 'rb') as calibrationFile:
-            data = pickle.load(calibrationFile)
-            self.cameraMatrix = data['cameraMatrix']
-            self.dist = data['dist']
-            self.rvecs = data['rvecs']
-            self.tvecs = data['tvecs']
-        self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(
-            self.cameraMatrix, self.dist, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT), 1, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT))
-
+        self.cam = camera.selfExpCamera()
         return self.cam
-
-    def undistortImage(self, distortedImage):
-        """
-            Function to remove distortion from the image.
-        """
-        # undistort the image
-        undistorted = cv2.undistort(
-            distortedImage, self.newcameramtx, self.dist)
-        return undistorted
 
     def transformImage(self, image):
         """
             Funkcija za transformacijo začetne barvne slike v primerno binarno sliko.
         """
-        # undistort the image
-        image = self.undistortImage(image)
-
         # convert the frame to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -194,15 +168,15 @@ class NozzleDetector:
         orientation = round(orientation, 2)
 
         # get width and height from rotated rectangle (first element is width, second is height)
-        width = rotatedRect[-2][0]
-        height = rotatedRect[-2][1]
-
+        width, height = rotatedRect[-2]
         # Get orientation of the nozzle (if width is smaller than height, the nozzle is rotated 90 degrees)
         if width < height:
             orientation = orientation - 90
 
+        rectCx, rectCy = rotatedRect[0]
+        cX, cY = self.getCoordinates(objectContour)
         # Determine if the object is upside down
-        isUpside = self.getTopBottomOrientation(rotatedRect, objectContour)
+        isUpside = self.getTopBottomOrientation(rectCx, rectCy, cX, cY, orientation)
         # Fix orientation if flipped
         orientation = orientation + 180 * isUpside
 
@@ -212,19 +186,18 @@ class NozzleDetector:
 
         return 360 - orientation  # Subtracting for the rotation to rise counter-clockwise
 
-    def getTopBottomOrientation(self, rotatedRect, objectContour):
+    def getTopBottomOrientation(self, rectCx, rectCy, cX, cY, orientation):
         """
         Function to get the top-bottom orientation of an object
         Args:
-            rotatedRect: rotated rectangle around the object
+            rectCx: center x coordinate of the rotated rectangle
+            rectCy: center y coordinate of the rotated rectangle
+            cX: center x coordinate of the contour
+            cY: center y coordinate of the contour
+            orientation: orientation of the object
         Returns:
             isUpside: bool() value if the object is upside down
         """
-
-        # Get center coordinates of rotated rectangle and of the contour for determining if the nozzle is upside down
-        rectCx, rectCy = map(int, rotatedRect[0])
-        cX, cY = self.getCoordinates(objectContour)
-        orientation = rotatedRect[-1]
 
         # If the objects orientation is horizontal
         #   then check if the center of the contour is to the left of the center of the rotated rectangle,
@@ -265,14 +238,14 @@ class NozzleDetector:
             y: y coordinate of the object in origin frame
         """
         # Transform coordinates from camera frame to origin frame
-        x = x - ORIGIN_COORD_FROM_CAM_X
-        y = y - ORIGIN_COORD_FROM_CAM_Y
+        x = (x - ORIGIN_COORD_FROM_CAM_X) * PIXEL_TO_MM
+        y = (y - ORIGIN_COORD_FROM_CAM_Y) * PIXEL_TO_MM
 
         # Rotate coordinates from camera frame to origin frame
         rotatedX = x * math.cos(ORIGIN_ROTATION_FROM_CAM) - \
             y * math.sin(ORIGIN_ROTATION_FROM_CAM)
         rotatedY = x * math.sin(ORIGIN_ROTATION_FROM_CAM) + \
-            y * math.cos(ORIGIN_ROTATION_FROM_CAM)
+            y * math.cos(ORIGIN_ROTATION_FROM_CAM)       
         return rotatedX, rotatedY
 
     def detectingThread(self):
