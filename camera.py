@@ -14,6 +14,7 @@ from parameters import *
 import logging
 import pickle
 
+
 class Camera:
     '''
     Camera class for handling camera and images operations
@@ -78,12 +79,12 @@ class Camera:
         cv2.imwrite("undistorted.jpg", self.image)
 
         return self.ret, self.image
-    
+
     # make function which undistort and warp image
     def getdWarpedImage(self, path=None):
         '''
         Get undistorted and warped image from camera
-        
+
         Returns
         -------
         ret : bool True if image is captured
@@ -111,7 +112,8 @@ class Camera:
         """
 
         transformed_img = cv2.warpPerspective(
-            image, self.homographyMatrix,  (HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_WIDTH, HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_HEIGHT))
+            image, self.homographyMatrix,  (int(HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_WIDTH * HOMOGRAPHY_FIELD_OUTER_SPACE_BOTTOMRIGHT),
+                                            int(HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_HEIGHT * HOMOGRAPHY_FIELD_OUTER_SPACE_BOTTOMRIGHT)))
 
         return transformed_img
 
@@ -205,6 +207,7 @@ class selfExpCamera(Camera):
     '''
     selfExpCamera class for handling camera and images operations for self exposure mode
     '''
+
     def __init__(self):
         if IMAGE_PATH == None:
             self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
@@ -224,6 +227,7 @@ class autoExpCamera(Camera):
     '''
     autoCamera class for handling camera and images operations for auto exposure mode
     '''
+
     def __init__(self):
         if IMAGE_PATH == None:
             self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)

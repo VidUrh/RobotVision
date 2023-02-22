@@ -60,6 +60,6 @@ def detectCheckerBoard(image, grayImage, criteria, boardDimension):
 CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 image, board_detected = detectCheckerBoard(
-    frame, gray, CRITERIA, (CALIBRATION_SQUARE_WIDTH-1, CALIBRATION_SQUARE_HEIGHT-1))
+    frame, gray, CRITERIA, (CALIBRATION_SQUARE_WIDTH, CALIBRATION_SQUARE_HEIGHT))
 print(image.shape)
 cam.showImage("test1", image, 0)
