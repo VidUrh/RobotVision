@@ -10,4 +10,5 @@ robotCalibCoordOffset.pickle
 readpkl.py
 test.py
 test/
+*jpg
 
