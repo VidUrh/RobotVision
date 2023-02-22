@@ -14,7 +14,6 @@ from parameters import *
 import logging
 import pickle
 
-
 class Camera:
     '''
     Camera class for handling camera and images operations
@@ -23,6 +22,7 @@ class Camera:
     def __init__(self, cam):
         # Initialize camera
         self.cam = cam
+        self.homographyMatrix = None
 
         with open(CALIBRATION_DATA_PATH, 'rb') as calibrationFile:
             data = pickle.load(calibrationFile)
@@ -55,7 +55,7 @@ class Camera:
 
         return self.ret, self.image
 
-    def getUndistortedImage(self):
+    def getUndistortedImage(self, path=None):
         '''
         Get undistorted image from camera
 
@@ -68,14 +68,19 @@ class Camera:
         ------
         logging.error : Failed to grab frame
         '''
-        image = self.getImage()[1]
-        self.image = cv2.undistort(image, self.newcameramtx, self.dist)
+        if path == None:
+            self.ret, self.image = self.getImage()
+        else:
+            self.image = self.loadImage(path)
+            self.ret = True
+
+        self.image = cv2.undistort(self.image, self.newcameramtx, self.dist)
         cv2.imwrite("undistorted.jpg", self.image)
 
         return self.ret, self.image
     
     # make function which undistort and warp image
-    def getdWarpedImage(self):
+    def getdWarpedImage(self, path=None):
         '''
         Get undistorted and warped image from camera
         
@@ -84,9 +89,13 @@ class Camera:
         ret : bool True if image is captured
         image : numpy.ndarray Captured image
         '''
-        image = self.getImage()[1]
-        self.image = cv2.undistort(image, self.newcameramtx, self.dist)
-        
+        if path == None:
+            self.ret, self.image = self.getImage()
+        else:
+            self.image = self.loadImage(path=path)
+            self.ret = True
+
+        self.image = cv2.undistort(self.image, self.newcameramtx, self.dist)
         self.image = self.warpPerspective(self.image)
         cv2.imwrite("warped.jpg", self.image)
 
@@ -124,7 +133,7 @@ class Camera:
         cv2.imwrite(path, image)
         return image
 
-    def loadImage(self, path, number, extension):
+    def loadImage(self, path):
         '''
         Load image from path with number and extension
 
@@ -138,7 +147,6 @@ class Camera:
         -------
         image : numpy.ndarray Loaded image
         '''
-        path = path + "image" + str(number) + extension
         image = cv2.imread(path)
         return image
 
@@ -182,7 +190,9 @@ class Camera:
         logging.info : Camera and windows destroyed
         logging.info : Windows already destroyed
         '''
-        self.cam.release()
+        if IMAGE_PATH == None:
+            self.cam.release()
+
         logging.info("Camera released")
         try:
             cv2.destroyAllWindows()
@@ -195,14 +205,16 @@ class selfExpCamera(Camera):
     '''
     selfExpCamera class for handling camera and images operations for self exposure mode
     '''
-
     def __init__(self):
-        self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
-        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
-        self.cam.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
-        print(self.cam.get(cv2.CAP_PROP_EXPOSURE))
+        if IMAGE_PATH == None:
+            self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
+            self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
+            self.cam.set(cv2.CAP_PROP_EXPOSURE, CAMERA_EXPOSURE)
+            self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
+            self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
+            print(self.cam.get(cv2.CAP_PROP_EXPOSURE))
+        else:
+            self.cam = None
 
         # initialize camera class
         Camera.__init__(self, self.cam)
@@ -212,15 +224,16 @@ class autoExpCamera(Camera):
     '''
     autoCamera class for handling camera and images operations for auto exposure mode
     '''
-
     def __init__(self):
-        # Initialize camera
-        self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
-        self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
-        self.cam.set(cv2.CAP_PROP_AUTOFOCUS, 1)
-        self.cam.set(cv2.CAP_PROP_AUTO_WB, 1)
+        if IMAGE_PATH == None:
+            self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
+            self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
+            self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
+            self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+            self.cam.set(cv2.CAP_PROP_AUTOFOCUS, 1)
+            self.cam.set(cv2.CAP_PROP_AUTO_WB, 1)
+        else:
+            self.cam = None
 
         # initialize camera class
         Camera.__init__(self, self.cam)
