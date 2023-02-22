@@ -1,3 +1,6 @@
+import sys
+sys.path.append('.')
+
 import csv
 import numpy as np
 import pickle

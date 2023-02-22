@@ -7,6 +7,8 @@
     Returns:
         None, but saves the homography matrix in the file HOMOGRAPHY_DATA_PATH (defined in parameters.py)
 """
+import sys
+sys.path.append('.')
 
 # Import the necessary packages
 import cv2

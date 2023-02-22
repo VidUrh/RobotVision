@@ -7,6 +7,9 @@ If the coordinates are not multiples of 25, then the camera scripts are not work
 We calculate the average error and print 10 points with the highest error.
 We also show this 10 points on the image.
 '''
+import sys
+sys.path.append('.')
+
 import cv2
 from parameters import *
 import camera

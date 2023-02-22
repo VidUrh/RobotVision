@@ -1,3 +1,6 @@
+import sys
+sys.path.append('.')
+
 import cv2
 import logging
 from parameters import *

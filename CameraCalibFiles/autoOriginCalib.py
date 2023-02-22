@@ -3,6 +3,9 @@ This script is used to calibrate the origin of the camera.
 
 It is used to find the coordinates of the origin of the camera in the robot frame.
 '''
+import sys
+sys.path.append('.')
+
 import cv2
 import time
 from parameters import *
