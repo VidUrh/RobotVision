@@ -75,7 +75,7 @@ corners = np.array([corners[i][0] for i in range(len(corners))])
 
 
 # Define the corners of the desired top-down view [(0,0),(HOMOGRAPHY_SCALING_FACTOR,0),(2*HOMOGRAPHY_SCALING_FACTOR,0),...] for the full checkerboard
-dst = np.array([[x * HOMOGRAPHY_SCALING_FACTOR, y * HOMOGRAPHY_SCALING_FACTOR]
+dst = np.array([[x * HOMOGRAPHY_SCALING_FACTOR + HOMOGRAPHY_FIELD_OUTER_SPACE_LEFT, y * HOMOGRAPHY_SCALING_FACTOR + HOMOGRAPHY_FIELD_OUTER_SPACE_TOP]
                for y in range(CALIBRATION_SQUARE_HEIGHT) for x in range(CALIBRATION_SQUARE_WIDTH)])
 
 # Compute the homography matrix using openCV function findHomography

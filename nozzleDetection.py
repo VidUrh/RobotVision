@@ -60,6 +60,19 @@ class NozzleDetector:
         # find nozzle positions
         nozzles = []
 
+        # Draw helper lines in debug mode
+        if DEBUG_MODE is True:
+            cv2.circle(self.image, (ORIGIN_COORD_FROM_CAM_X,
+                                    ORIGIN_COORD_FROM_CAM_Y), 5, (255, 0, 255), -1)
+
+            # Draw the x and y axis
+            lineLength = 2000
+            cv2.line(self.image, (ORIGIN_COORD_FROM_CAM_X - lineLength, ORIGIN_COORD_FROM_CAM_Y),
+                     (ORIGIN_COORD_FROM_CAM_X + lineLength, ORIGIN_COORD_FROM_CAM_Y), (0, 0, 255), 2)
+
+            cv2.line(self.image, (ORIGIN_COORD_FROM_CAM_X, ORIGIN_COORD_FROM_CAM_Y - lineLength), (
+                ORIGIN_COORD_FROM_CAM_X, ORIGIN_COORD_FROM_CAM_Y + lineLength), (0, 255, 0), 2)
+
         for nozzle in filteredContours:
             nozzleXpos, nozzleYpos = self.getCoordinates(nozzle)
             nozzleRotation = self.getOrientation(nozzle)
@@ -68,10 +81,20 @@ class NozzleDetector:
             nozzles.append(
                 Nozzle(nozzleInWorldX, nozzleInWorldY, nozzleRotation))
 
-            cv2.putText(self.image, f'({nozzleInWorldX})', (
-                nozzleXpos+50, nozzleYpos), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-            cv2.putText(self.image, f'({nozzleInWorldY})', (
-                nozzleXpos+50, nozzleYpos + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            # Draw helper lines in debug mode
+            if DEBUG_MODE is True:
+                cv2.putText(self.image, f'({nozzleInWorldX})', (
+                    nozzleXpos+50, nozzleYpos), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                cv2.putText(self.image, f'({nozzleInWorldY})', (
+                    nozzleXpos+50, nozzleYpos + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.circle(self.image, (nozzleXpos, nozzleYpos),
+                           5, (255, 0, 255), -1)
+
+                cv2.line(self.image, (nozzleXpos - lineLength, nozzleYpos),
+                         (nozzleXpos + lineLength, nozzleYpos), (0, 0, 255), 2)
+
+                cv2.line(self.image, (nozzleXpos, nozzleYpos - lineLength), (
+                    nozzleXpos, nozzleYpos + lineLength), (0, 255, 0), 2)
 
         with self.lock:
             self.nozzles = nozzles

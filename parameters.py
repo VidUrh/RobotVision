@@ -9,7 +9,7 @@ CAMERA_FRAME_SIZE = (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT)
 CAMERA_PORT = 0
 CAMERA_EXPOSURE = -7
 
-IMAGE_PATH = None # if none make picture if path load picture
+IMAGE_PATH = None  # if none make picture if path load picture
 ####################################################################################################################################################################
 #      CALIBRATION PARAMETERS                                                                                                                                      #
 ####################################################################################################################################################################
@@ -27,6 +27,10 @@ HOMOGRAPHY_DATA_PATH = "./homography_data.pkl"
 
 HOMOGRAPHY_SCALING_FACTOR = 100
 SCALE_HOMOGRAPHY_FIELD_FACTOR = 2
+# Size of the outer space scaled from the checkerboard size.
+HOMOGRAPHY_FIELD_OUTER_SPACE_LEFT = 250
+HOMOGRAPHY_FIELD_OUTER_SPACE_TOP = 300
+HOMOGRAPHY_FIELD_OUTER_SPACE_BOTTOMRIGHT = 1.35
 
 MATRIX_CSV_PATH = "./mtx.csv"
 DIST_CSV_PATH = "./dist.csv"
@@ -34,6 +38,9 @@ DIST_CSV_PATH = "./dist.csv"
 ####################################################################################################################################################################
 #      DETECTION PARAMETERS                                                                                                                                        #
 ####################################################################################################################################################################
+DEBUG_MODE = False
+
+
 MAXIMUM_OBJECT_ARC = 2400
 MINIMUM_OBJECT_ARC = 900
 GRAYSCALE_THRESHOLD = 100
