@@ -12,7 +12,7 @@ import camera
 cam = camera.selfExpCamera()
 
 while True:
-    ret, frame = cam.getdWarpedImage()
+    ret, frame = cam.getdWarpedImage(IMAGE_PATH)
     if not ret:
         print("Failed to grab frame")
         break
