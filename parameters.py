@@ -21,15 +21,17 @@ CALIBRATION_SQUARES = (CALIBRATION_SQUARE_WIDTH, CALIBRATION_SQUARE_HEIGHT)
 
 CALIBRATION_IMAGE_DIR = "./images"
 
-CORNERS_DATA_PATH = "./corners.json"
-CALIBRATION_DATA_PATH = "./calibration_data.pkl"
-HOMOGRAPHY_DATA_PATH = "./homography_data.pkl"
+CORNERS_DATA_PATH = "./dataFiles/corners.json"
+CALIBRATION_DATA_PATH = "./dataFiles/calibration_data.pkl"
+HOMOGRAPHY_DATA_PATH = "./dataFiles/homography_data.pkl"
 
 HOMOGRAPHY_SCALING_FACTOR = 100
 SCALE_HOMOGRAPHY_FIELD_FACTOR = 2
 
-MATRIX_CSV_PATH = "./mtx.csv"
-DIST_CSV_PATH = "./dist.csv"
+MATRIX_CSV_PATH = "./dataFiles/mtx.csv"
+DIST_CSV_PATH = "./dataFiles/dist.csv"
+
+LOGGING_FILE_PATH = "./dataFiles/robot.log"
 
 ####################################################################################################################################################################
 #      DETECTION PARAMETERS                                                                                                                                        #

@@ -96,7 +96,7 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=[
-            logging.FileHandler("robot.log"),
+            logging.FileHandler(LOGGING_FILE_PATH),
             logging.StreamHandler()
         ]
     )
