@@ -5,34 +5,31 @@ On fresh origin calibration the coordinates should be multiples of 25.
 If the coordinates are not multiples of 25, then the camera scripts are not working properly.
 '''
 import cv2
-import numpy as np
 from parameters import *
 import camera
 from nozzleDetection import NozzleDetector
+import pandas as pd
+import time
 
+# make camera object
 cam = camera.selfExpCamera()
+# make nozzle detector object
 detector = NozzleDetector()
 
-points25 = np.array([[x * 25, y * 25]
-                     for y in range(CALIBRATION_SQUARE_HEIGHT) for x in range(CALIBRATION_SQUARE_WIDTH)])
+# make data frame for reference
+dfRef = pd.DataFrame(columns=["xRef", "yRef"])
 
-while True:
-    ret, frame = cam.getdWarpedImage()
-    if not ret:
-        print("Failed to grab frame")
-        break
-    if cam.showImage("test", frame, 1) == ord("q"):
-        cam.saveImage("calibration_", frame)
-        break
+# make same as points25 but in dfRef (dont use points25 because it is a numpy array)
+for y in range(CALIBRATION_SQUARE_HEIGHT-1):
+    for x in range(CALIBRATION_SQUARE_WIDTH-1):
+        dfRef.loc[y*(CALIBRATION_SQUARE_WIDTH-1)+x] = [x*25, y*25]
 
-if frame is None:
-    print("No image captured")
-    exit()
-
+# maka data frame for error
+dfErr = pd.DataFrame(columns=["id", "xError", "yError"])
+dfErr["id"] = dfErr["id"].astype(int)
 
 def dist(p1):
     return ((p1[0]**2+p1[1])**2)**0.5
-
 
 def detectCheckerBoard(image, grayImage, criteria, boardDimension):
     ret, corners = cv2.findChessboardCorners(grayImage, boardDimension)
@@ -46,20 +43,69 @@ def detectCheckerBoard(image, grayImage, criteria, boardDimension):
         for i, corner in enumerate(corners1):
             x, y = detector.transformFromCameraToOrigin(*corner[0])
 
-            x = round(x, 2)
-            y = round(y, 2)
+            #print(f"Point {i} refr coordinates: ({dfRef.loc[i][0]}, {dfRef.loc[i][1]})")
+            #print(f"Point {i} coordinates: ({x}, {y})")
+            xError = abs(dfRef.loc[i][0] - x)
+            yError = abs(dfRef.loc[i][1] - y)
+            #print(f"Point {i} error: ({xError}, {yError})")
 
-            cv2.putText(image, f"{x}", (int(corner[0][0]), int(
-                corner[0][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+            xError = round(xError, 2)
+            yError = round(yError, 2)
 
-            cv2.putText(image, f"{y}", (int(corner[0][0]), int(
-                corner[0][1])+30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            # add error to data frame
+            dfErr.loc[i] = [i, xError, yError]
+
+        # find average error
+        xError = dfErr["xError"].mean()
+        yError = dfErr["yError"].mean()
+        print(f"Average error: ({xError}, {yError})")
+
+        # find max error
+        xError = dfErr["xError"].max()
+        yError = dfErr["yError"].max()
+        print(f"Max error: ({xError}, {yError})")
+
+        # calculate mean error between x and y error and add to data frame
+        dfErr["meanError"] = (dfErr["xError"] + dfErr["yError"])/2
+        # ahow all data frame in terminal
+
+
+        # find 10 point with max error
+        meanError = dfErr.sort_values(by=["meanError"], ascending=False)
+        meanError = meanError.reset_index(drop=True)
+        meanError["id"] = meanError["id"].apply(int)
+        print(meanError.head(10))
+
+        for i in range(10):
+            cv2.putText(image, f"{meanError.loc[i][1]}", (int(corners1[meanError["id"].loc[i]][0][0]), int(
+                corners1[meanError["id"].loc[i]][0][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+
+            cv2.putText(image, f"{meanError.loc[i][2]}", (int(corners1[meanError["id"].loc[i]][0][0]), int(
+                corners1[meanError["id"].loc[i]][0][1])+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+
+            cv2.putText(image, f"{meanError.loc[i][3]}", (int(corners1[meanError["id"].loc[i]][0][0]), int(
+                corners1[meanError["id"].loc[i]][0][1])+30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 1, cv2.LINE_AA)
+
+            # print(f"Point {meanError['id'].loc[i]} error: ({meanError.loc[i][1]}, {meanError.loc[i][2]})")
+
     return image, ret
 
+def main():
+    while True:
+        ret, frame = cam.getdWarpedImage(IMAGE_PATH)
+        if not ret:
+            print("Failed to grab frame")
+            break
+        else:
+            print("Image captured")
+            break
 
-CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-image, board_detected = detectCheckerBoard(
-    frame, gray, CRITERIA, (CALIBRATION_SQUARE_WIDTH-1, CALIBRATION_SQUARE_HEIGHT-1))
-print(image.shape)
-cam.showImage("test1", image, 0)
+    CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    image, board_detected = detectCheckerBoard(frame, gray, CRITERIA, (CALIBRATION_SQUARE_WIDTH-1, 
+                                                                       CALIBRATION_SQUARE_HEIGHT-1))
+    
+    cam.showImage("test1", image, 0)
+
+if __name__ == "__main__":
+    main()
