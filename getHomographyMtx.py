@@ -28,7 +28,7 @@ ret, img = cameraObj.getUndistortedImage(path=IMAGE_PATH)
 if not ret:
     raise Exception("[ERROR]: Failed to get image from camera!")
 
-# Get the checkerboard corners in the distorted image
+
 def dist(p1):
     """Function that returns the distance of the point to the origin.
 
@@ -67,6 +67,7 @@ def detectCheckerBoard(grayImage, boardDimension):
 
 grayImg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+# Get the checkerboard corners in the distorted image
 ret, corners = detectCheckerBoard(grayImg, CALIBRATION_SQUARES)
 
 # Change corners format to 2D array
@@ -84,8 +85,6 @@ cameraObj.homographyMatrix, _ = cv2.findHomography(corners, dst)
 while 1:
     ret, transformed_img = cameraObj.getdWarpedImage(IMAGE_PATH)
 
-    # transformed_img = cv2.warpPerspective(
-    #    img, homographyMatrix, (HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_HEIGHT, HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_WIDTH))
     cv2.imshow("transformed", transformed_img)
     cv2.imshow("original", img)
     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -94,37 +93,3 @@ while 1:
 # Save the homography matrix in the file HOMOGRAPHY_DATA_PATH
 with open(HOMOGRAPHY_DATA_PATH, 'wb') as f:
     pickle.dump(cameraObj.homographyMatrix, f)
-
-'''
-import cv2
-import numpy as np
-import camera
-import pickle
-from parameters import *
-
-cameraObj = camera.selfExpCamera()
-img = cameraObj.getUndistortedImage()[1]
-
-# Get the checkerboard corners in the distorted image
-
-src = np.array([[352, 36], [334, 935], [1637, 927], [1606, 38]], np.float32)
-
-# Define the corners of the desired top-down view
-width, height = 1000, 1000
-print(width, height)
-dst = np.array([[0, 0], [width, 0], [width, height], [0, height]], np.float32)
-# Compute the homography matrix
-M, _ = cv2.findHomography(src, dst)
-pickle.dump(M, open(HOMOGRAPHY_DATA_PATH, "wb"))
-
-# Apply the homography transformation
-while 1:
-    ret, transformed_img = cameraObj.getUndistortedImage()
-    transformed_img = cv2.warpPerspective(img, M, (width, height))
-    cv2.imshow("transformed", transformed_img)
-    # cv2.imshow("original", img)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-# Save the transformed image
-cv2.imwrite('transformed_image.jpg', transformed_img)
-'''
