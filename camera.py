@@ -75,7 +75,7 @@ class Camera:
             self.ret = True
 
         self.image = cv2.undistort(self.image, self.newcameramtx, self.dist)
-        cv2.imwrite("undistorted.jpg", self.image)
+        cv2.imwrite(UNDISTORTED_IMAGE_PATH, self.image)
 
         return self.ret, self.image
     
@@ -97,7 +97,7 @@ class Camera:
 
         self.image = cv2.undistort(self.image, self.newcameramtx, self.dist)
         self.image = self.warpPerspective(self.image)
-        cv2.imwrite("warped.jpg", self.image)
+        cv2.imwrite(WARPED_IMAGE_PATH, self.image)
 
         return self.ret, self.image
 

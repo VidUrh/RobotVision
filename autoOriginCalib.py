@@ -17,7 +17,7 @@ while True:
         print("Failed to grab frame")
         break
     if cam.showImage("test", frame, 1) == ord("q"):
-        cam.saveImage("calibration_", frame)
+        cam.saveImage("dataFiles/calibration_", frame)
         break
 
 if frame is None:
