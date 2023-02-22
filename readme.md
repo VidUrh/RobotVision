@@ -64,7 +64,7 @@
 ## About The Project
 ### Spletna stran v prihodnosti
  <a href="https://github.com/VidUrh/RobotVision">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="images/logo.gif" alt="Logo" width="80" height="80">
   </a>
 
 
