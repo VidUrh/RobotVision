@@ -3,6 +3,9 @@ This script is used to test the coordinates of the points on the checkerboard.
 It finds the coordinates of the checkerboard points and displays their coordinates on the image.
 On fresh origin calibration the coordinates should be multiples of 25.
 If the coordinates are not multiples of 25, then the camera scripts are not working properly.
+
+We calculate the average error and print 10 points with the highest error.
+We also show this 10 points on the image.
 '''
 import cv2
 from parameters import *
