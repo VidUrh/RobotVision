@@ -14,10 +14,12 @@ from parameters import *
 import logging
 import pickle
 
+
 class Camera:
     '''
     Camera class for handling camera and images operations
     '''
+
     def __init__(self, cam):
         # Initialize camera
         self.cam = cam
@@ -27,20 +29,21 @@ class Camera:
             cameraMatrix = data['cameraMatrix']
             dist = data['dist']
             self.dist = dist
-            rvecs = data['rvecs']
-            tvecs = data['tvecs']
             self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(
-        cameraMatrix, dist, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT), 1, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT))
+                cameraMatrix, dist, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT), 1, (CAMERA_FRAME_WIDTH, CAMERA_FRAME_HEIGHT))
+
+        with open(HOMOGRAPHY_DATA_PATH, 'rb') as homographyFile:
+            self.homographyMatrix = pickle.load(homographyFile)
 
     def getImage(self):
         '''
         Get image from camera
-        
+
         Returns
         -------
         ret : bool True if image is captured
         image : numpy.ndarray Captured image
-        
+
         Raises
         ------
         logging.error : Failed to grab frame
@@ -51,24 +54,41 @@ class Camera:
             exit(1)
 
         return self.ret, self.image
-    
+
     def getUndistortedImage(self):
         '''
         Get undistorted image from camera
-        
+
         Returns
         -------
         ret : bool True if image is captured
         image : numpy.ndarray Captured image
-        
+
         Raises
         ------
         logging.error : Failed to grab frame
         '''
-        image = self.getImage()
+        image = self.getImage()[1]
+        self.image = cv2.undistort(image, self.newcameramtx, self.dist)
 
-        self.image = cv2.undistort(self.image, self.newcameramtx, self.dist)
+        self.image = self.warpPerspective(self.image)
+        cv2.imwrite("undistorted.jpg", self.image)
+
         return self.ret, self.image
+
+    def warpPerspective(self, image):
+        """
+        Function to warp perspective of image and returns transformed image.
+        Args:
+            image (numpy.ndarray): Image to be transformed.
+        Returns:
+            transformed_img (numpy.ndarray): Transformed image.
+        """
+
+        transformed_img = cv2.warpPerspective(
+            image, self.homographyMatrix,  (HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_WIDTH, HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_HEIGHT))
+
+        return transformed_img
 
     def saveImage(self, path, image, number='', extension=".png"):
         '''
@@ -83,21 +103,21 @@ class Camera:
         '''
         if image is None:
             return None
-        
+
         path = path + "image" + str(number) + extension
         cv2.imwrite(path, image)
         return image
-    
+
     def loadImage(self, path, number, extension):
         '''
         Load image from path with number and extension
-        
+
         Parameters
         ----------
         path : str Path to load image
         number : int Number of image
         extension : str Extension of image
-        
+
         Returns
         -------
         image : numpy.ndarray Loaded image
@@ -109,7 +129,7 @@ class Camera:
     def showImage(self, name, image, ms=-1):
         '''
         Show image with name and wait for ms milliseconds
-        
+
         Parameters
         ----------
         name : str Name of the window
@@ -124,7 +144,7 @@ class Camera:
         if ms != -1:
             key = cv2.waitKey(ms)
             return key
-            
+
     def release(self):
         self.cam.release()
         logging.info("Camera released")
@@ -139,7 +159,7 @@ class Camera:
     def __del__(self):
         '''
         Release camera and destroy windows
-        
+
         Raises
         ------
         logging.info : Camera released
@@ -154,10 +174,12 @@ class Camera:
         except:
             logging.info("Windows already destroyed")
 
+
 class selfExpCamera(Camera):
     '''
     selfExpCamera class for handling camera and images operations for self exposure mode
     '''
+
     def __init__(self):
         self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
         self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
@@ -165,14 +187,16 @@ class selfExpCamera(Camera):
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_FRAME_WIDTH)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_FRAME_HEIGHT)
         print(self.cam.get(cv2.CAP_PROP_EXPOSURE))
-        
+
         # initialize camera class
         Camera.__init__(self, self.cam)
+
 
 class autoExpCamera(Camera):
     '''
     autoCamera class for handling camera and images operations for auto exposure mode
     '''
+
     def __init__(self):
         # Initialize camera
         self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
@@ -188,7 +212,7 @@ class autoExpCamera(Camera):
         self.image = None
         self.alpha = None
         self.beta = None
-    
+
     def imageSettings(self):
         '''
         Function for setting image settings with convertScaleAbs function
@@ -196,8 +220,9 @@ class autoExpCamera(Camera):
         beta = 200-100 -> min -100, max 100
         '''
         cv2.namedWindow('image')
-        cv2.createTrackbar('Aplha','image',0, 300,self.setAlpha) # Hue is from 0-179 for Opencv
-        cv2.createTrackbar('Beta','image',0,200,self.setBeta)
+        # Hue is from 0-179 for Opencv
+        cv2.createTrackbar('Aplha', 'image', 0, 300, self.setAlpha)
+        cv2.createTrackbar('Beta', 'image', 0, 200, self.setBeta)
         cv2.setTrackbarPos('Aplha', 'image', 100)
         cv2.setTrackbarPos('Beta', 'image', 100)
         image = Camera.getImage(self)[1]
@@ -207,7 +232,8 @@ class autoExpCamera(Camera):
         while True:
             image = Camera.getImage(self)[1]
             print(self.alpha, self.beta)
-            adjImage = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
+            adjImage = cv2.convertScaleAbs(
+                image, alpha=self.alpha, beta=self.beta)
             cv2.imshow('image', adjImage)
 
             key = cv2.waitKey(1)
@@ -216,21 +242,21 @@ class autoExpCamera(Camera):
 
     def setAlpha(self, x):
         self.alpha = x / 100
-        #print(alpha)
+        # print(alpha)
         image = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
         cv2.imshow('image', image)
-    
+
     def setBeta(self, x):
         self.beta = x - 100
-        #print(beta)
+        # print(beta)
         image = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
         cv2.imshow('image', image)
-    
+
 
 # Main functions or tests
 def selfExpCameraMain():
     # Test camera class
-    expCam = selfExpCamera() # Initialize camera with self exposure
+    expCam = selfExpCamera()  # Initialize camera with self exposure
     cam = expCam.cam
     ret, image = cam.getImage()
     cam.showImage("test", image)
@@ -238,28 +264,32 @@ def selfExpCameraMain():
     image = cam.loadImage("test", 1, ".png")
     cam.showImage("test1", image, 0)
 
+
 def autoExpCameraMain():
-    autoCam = autoExpCamera() # Initialize camera with auto exposure
+    autoCam = autoExpCamera()  # Initialize camera with auto exposure
     cam = autoCam.cam
     while True:
         _, image = cam.getImage()
         if cam.showImage("test", image, 1) == ord('q'):
             break
-    
+
+
 def imageSettingsMain():
     cam = autoExpCamera()
     cam.imageSettings()
 
+
 def test():
     cam = autoExpCamera()
     cam.imageSettings()
-    while	True:
+    while True:
         _, image = cam.getImage()
         if cam.showImage("test", image, 1) == ord('q'):
             break
 
+
 if __name__ == "__main__":
-    #selfExpCameraMain()
-    #autoExpCameraMain()
-    #imageSettingsMain()
+    # selfExpCameraMain()
+    # autoExpCameraMain()
+    # imageSettingsMain()
     test()

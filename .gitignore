@@ -3,6 +3,10 @@ __pycache__
 images
 tst*
 *.log
-calibration_data.pkl
 corners.json
 calibration_image.png
+robotCalibPoints.pickle
+robotCalibCoordOffset.pickle
+testPointCoordinates.py
+readpkl.py
+test.py

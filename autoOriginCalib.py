@@ -26,7 +26,7 @@ if frame is None:
 
 
 def dist(p1):
-    return((p1[0]**2+p1[1])**2)**0.5
+    return ((p1[0]**2+p1[1])**2)**0.5
 
 
 def detectCheckerBoard(image, grayImage, criteria, boardDimension):
@@ -44,20 +44,22 @@ def detectCheckerBoard(image, grayImage, criteria, boardDimension):
         xTopL = corners[0][0][0]
         yTopL = corners[0][0][1]
         cv2.putText(image, "TopLeft", (int(xTopL), int(yTopL)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2) # Print "TopLeft" near the circle
-        cv2.circle(image, (int(xTopL), int(yTopL)), 7, (0, 0, 255), 2) # Draw a circle on the corner
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)  # Print "TopLeft" near the circle
+        cv2.circle(image, (int(xTopL), int(yTopL)), 7,
+                   (0, 0, 255), 2)  # Draw a circle on the corner
 
         # Top right corner
         xTopR = corners[NUM_SQUARES][0][0]
         yTopR = corners[NUM_SQUARES][0][1]
         cv2.putText(image, "TopRight", (int(xTopR), int(yTopR)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2) # Print "TopRight" near the circle
-        cv2.circle(image, (int(xTopR), int(yTopR)), 7, (0, 255, 255), 2) # Draw a circle on the corner
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)  # Print "TopRight" near the circle
+        cv2.circle(image, (int(xTopR), int(yTopR)), 7,
+                   (0, 255, 255), 2)  # Draw a circle on the corner
 
-        with open("corners.json", "w") as f:
+        with open(CORNERS_DATA_PATH, "w") as f:
             json.dump({
-                "origin" : [int(xTopL), int(yTopL)],
-                "x" : [int(xTopR), int(yTopR)]
+                "origin": [int(xTopL), int(yTopL)],
+                "x": [int(xTopR), int(yTopR)]
             }, f)
 
     return image, ret
@@ -66,6 +68,6 @@ def detectCheckerBoard(image, grayImage, criteria, boardDimension):
 CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 image, board_detected = detectCheckerBoard(
-    frame, gray, CRITERIA, CALIBRATION_SQUARES)
+    frame, gray, CRITERIA, (CALIBRATION_SQUARE_WIDTH-1, CALIBRATION_SQUARE_HEIGHT-1))
 
 cam.showImage("test1", image, 0)
