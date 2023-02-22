@@ -12,8 +12,10 @@ import threading
 import pickle
 import camera
 
+
 class CameraReadError(Exception):
     pass
+
 
 class Nozzle:
     def __init__(self, position_x, position_y, rotation):
@@ -45,7 +47,7 @@ class NozzleDetector:
             Vrne seznam objektov class-a Nozzle.
         """
         ret, self.image = self.cam.getUndistortedImage()
-        
+
         # transform to binary image
         transformed = self.transformImage(self.image)
 
@@ -65,6 +67,11 @@ class NozzleDetector:
                 nozzleXpos, nozzleYpos)
             nozzles.append(
                 Nozzle(nozzleInWorldX, nozzleInWorldY, nozzleRotation))
+
+            cv2.putText(self.image, f'({nozzleInWorldX})', (
+                nozzleXpos+50, nozzleYpos), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            cv2.putText(self.image, f'({nozzleInWorldY})', (
+                nozzleXpos+50, nozzleYpos + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         with self.lock:
             self.nozzles = nozzles
@@ -176,7 +183,8 @@ class NozzleDetector:
         rectCx, rectCy = rotatedRect[0]
         cX, cY = self.getCoordinates(objectContour)
         # Determine if the object is upside down
-        isUpside = self.getTopBottomOrientation(rectCx, rectCy, cX, cY, orientation)
+        isUpside = self.getTopBottomOrientation(
+            rectCx, rectCy, cX, cY, orientation)
         # Fix orientation if flipped
         orientation = orientation + 180 * isUpside
 
@@ -245,7 +253,7 @@ class NozzleDetector:
         rotatedX = x * math.cos(ORIGIN_ROTATION_FROM_CAM) - \
             y * math.sin(ORIGIN_ROTATION_FROM_CAM)
         rotatedY = x * math.sin(ORIGIN_ROTATION_FROM_CAM) + \
-            y * math.cos(ORIGIN_ROTATION_FROM_CAM)       
+            y * math.cos(ORIGIN_ROTATION_FROM_CAM)
         return rotatedX, rotatedY
 
     def detectingThread(self):
