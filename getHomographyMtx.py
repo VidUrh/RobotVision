@@ -23,14 +23,12 @@ time.sleep(2)
 
 
 # Get the distorted image
-ret, img = cameraObj.getUndistortedImage()
+ret, img = cameraObj.getUndistortedImage(path=IMAGE_PATH)
 
 if not ret:
     raise Exception("[ERROR]: Failed to get image from camera!")
 
 # Get the checkerboard corners in the distorted image
-
-
 def dist(p1):
     """Function that returns the distance of the point to the origin.
 
@@ -80,11 +78,11 @@ dst = np.array([[x * HOMOGRAPHY_SCALING_FACTOR, y * HOMOGRAPHY_SCALING_FACTOR]
                for y in range(CALIBRATION_SQUARE_HEIGHT) for x in range(CALIBRATION_SQUARE_WIDTH)])
 
 # Compute the homography matrix using openCV function findHomography
-homographyMatrix, _ = cv2.findHomography(corners, dst)
+cameraObj.homographyMatrix, _ = cv2.findHomography(corners, dst)
 
 # Check the result by applying the homography transformation to the distorted image
 while 1:
-    ret, transformed_img = cameraObj.getUndistortedImage()
+    ret, transformed_img = cameraObj.getdWarpedImage(IMAGE_PATH)
 
     # transformed_img = cv2.warpPerspective(
     #    img, homographyMatrix, (HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_HEIGHT, HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_WIDTH))
@@ -95,7 +93,7 @@ while 1:
 
 # Save the homography matrix in the file HOMOGRAPHY_DATA_PATH
 with open(HOMOGRAPHY_DATA_PATH, 'wb') as f:
-    pickle.dump(homographyMatrix, f)
+    pickle.dump(cameraObj.homographyMatrix, f)
 
 '''
 import cv2
