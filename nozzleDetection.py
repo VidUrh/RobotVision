@@ -46,7 +46,7 @@ class NozzleDetector:
             Funkcija za detekcijo nozzlov na sliki.
             Vrne seznam objektov class-a Nozzle.
         """
-        ret, self.image = self.cam.getUndistortedImage()
+        ret, self.image = self.cam.getdWarpedImage()
 
         # transform to binary image
         transformed = self.transformImage(self.image)
