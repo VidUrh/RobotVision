@@ -12,7 +12,7 @@ import camera
 cam = camera.selfExpCamera()
 
 while True:
-    ret, frame = cam.getUndistortedImage()
+    ret, frame = cam.getdWarpedImage()
     if not ret:
         print("Failed to grab frame")
         break

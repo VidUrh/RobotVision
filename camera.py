@@ -70,9 +70,25 @@ class Camera:
         '''
         image = self.getImage()[1]
         self.image = cv2.undistort(image, self.newcameramtx, self.dist)
-
-        self.image = self.warpPerspective(self.image)
         cv2.imwrite("undistorted.jpg", self.image)
+
+        return self.ret, self.image
+    
+    # make function which undistort and warp image
+    def getdWarpedImage(self):
+        '''
+        Get undistorted and warped image from camera
+        
+        Returns
+        -------
+        ret : bool True if image is captured
+        image : numpy.ndarray Captured image
+        '''
+        image = self.getImage()[1]
+        self.image = cv2.undistort(image, self.newcameramtx, self.dist)
+        
+        self.image = self.warpPerspective(self.image)
+        cv2.imwrite("warped.jpg", self.image)
 
         return self.ret, self.image
 
