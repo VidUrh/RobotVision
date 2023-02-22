@@ -7,7 +7,6 @@ corners.json
 calibration_image.png
 robotCalibPoints.pickle
 robotCalibCoordOffset.pickle
-readpkl.py
 test.py
 test/
 *jpg
