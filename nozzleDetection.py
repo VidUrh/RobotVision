@@ -78,6 +78,14 @@ class NozzleDetector:
             nozzleRotation = self.getOrientation(nozzle)
             nozzleInWorldX, nozzleInWorldY = self.transformFromCameraToOrigin(
                 nozzleXpos, nozzleYpos)
+            
+            xOffset, yOffset = 17, 0
+            nozzleOffsetY = xOffset * math.sin(nozzleRotation) + yOffset * math.cos(nozzleRotation)
+            nozzleOffsetX = xOffset * math.cos(nozzleRotation) - yOffset * math.sin(nozzleRotation)
+            nozzleInWorldX += nozzleOffsetX
+            nozzleInWorldY += nozzleOffsetY
+
+            
             nozzles.append(
                 Nozzle(nozzleInWorldX, nozzleInWorldY, nozzleRotation))
 
