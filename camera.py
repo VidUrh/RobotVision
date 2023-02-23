@@ -166,6 +166,7 @@ class Camera:
         -------
         key : int Key pressed
         '''
+        image = cv2.resize(image,(768*2,512*2))
         cv2.imshow(name, image)
         if ms != -1:
             key = cv2.waitKey(ms)
