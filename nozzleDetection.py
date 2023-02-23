@@ -283,7 +283,7 @@ class NozzleDetector:
         self.running = True
         while self.running:
             self.detectNozzles()
-            cv2.imshow("image", self.image)
+            self.cam.showImage("image", self.image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 self.stopDetecting()
             time.sleep(0.1)

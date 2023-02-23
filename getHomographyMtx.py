@@ -85,8 +85,8 @@ cameraObj.homographyMatrix, _ = cv2.findHomography(corners, dst)
 while 1:
     ret, transformed_img = cameraObj.getdWarpedImage(IMAGE_PATH)
 
-    cv2.imshow("transformed", transformed_img)
-    cv2.imshow("original", img)
+    cameraObj.showImage("transformed", transformed_img)
+    cameraObj.showImage("original", img)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
