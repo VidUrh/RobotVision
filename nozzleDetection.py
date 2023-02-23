@@ -79,9 +79,15 @@ class NozzleDetector:
             nozzleInWorldX, nozzleInWorldY = self.transformFromCameraToOrigin(
                 nozzleXpos, nozzleYpos)
             
-            xOffset, yOffset = 17, 0
-            nozzleOffsetY = xOffset * math.sin(nozzleRotation) + yOffset * math.cos(nozzleRotation)
-            nozzleOffsetX = xOffset * math.cos(nozzleRotation) - yOffset * math.sin(nozzleRotation)
+            # offset for robot
+            nozzleInWorldX += 3
+            nozzleInWorldY += 7
+
+            xOffset, yOffset = 15, 0
+            #nozzleRotation = nozzleRotation * -1
+            print(nozzleRotation)
+            nozzleOffsetX = -xOffset * math.cos(math.radians(nozzleRotation))# - yOffset * math.sin(nozzleRotation)
+            nozzleOffsetY = xOffset * math.sin(math.radians(nozzleRotation))# + yOffset * math.cos(nozzleRotation)
             nozzleInWorldX += nozzleOffsetX
             nozzleInWorldY += nozzleOffsetY
 
@@ -130,10 +136,10 @@ class NozzleDetector:
         kernel = np.ones((3, 3), np.uint8)
 
         # erode the frame
-        eroded = cv2.erode(thresh, kernel, iterations=4)
+        eroded = cv2.erode(thresh, kernel, iterations=8)
 
         # dilate the frame
-        dilated = cv2.dilate(eroded, kernel, iterations=3)
+        dilated = cv2.dilate(eroded, kernel, iterations=6)
 
         return dilated
 
