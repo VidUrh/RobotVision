@@ -17,6 +17,7 @@ CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 #    SETUP CAMERA                                                                                                                                                  #
 ####################################################################################################################################################################
 
+
 def setupCamera():
     cap = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
     cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0)
@@ -28,6 +29,7 @@ def setupCamera():
 ####################################################################################################################################################################
 #    TAKE CALIBRATION IMAGES                                                                                                                                       #
 ####################################################################################################################################################################
+
 
 def detectCheckerBoard(image, grayImage, criteria, boardDimension):
     ret, corners = cv2.findChessboardCorners(grayImage, boardDimension)
@@ -57,10 +59,10 @@ def takeCalibrationImages(camera):
             f'"{CALIBRATION_IMAGE_DIR}" Directory already Exists. Do you want to take new pictures? (y/n): ')
         if makeNew == 'y':
             # clearing the directory
-            for file in os.listdir(CALIBRATION_IMAGE_DIR):
-                os.remove(os.path.join(CALIBRATION_IMAGE_DIR, file))
-            os.rmdir(CALIBRATION_IMAGE_DIR)
-            os.makedirs(CALIBRATION_IMAGE_DIR)
+            # for file in os.listdir(CALIBRATION_IMAGE_DIR):
+            #     os.remove(os.path.join(CALIBRATION_IMAGE_DIR, file))
+            # os.rmdir(CALIBRATION_IMAGE_DIR)
+            # os.makedirs(CALIBRATION_IMAGE_DIR)
             print(f'"{CALIBRATION_IMAGE_DIR}" Directory is cleared and created')
         else:
             print(f'"{CALIBRATION_IMAGE_DIR}" Directory is not cleared')
@@ -89,7 +91,7 @@ def takeCalibrationImages(camera):
             break
         if key == ord("s") and board_detected == True:
             # storing the checker board image
-            cv2.imwrite(f"{CALIBRATION_IMAGE_DIR}/image{n}.png", gray)
+            # cv2.imwrite(f"{CALIBRATION_IMAGE_DIR}/image{n}.png", gray)
             print(f"saved image number {n}")
             n += 1  # incrementing the image counter
     print("Total saved Images:", n)
@@ -97,6 +99,7 @@ def takeCalibrationImages(camera):
 ####################################################################################################################################################################
 #    CALCULATE REPROJECTION ERROR                                                                                                                                  #
 ####################################################################################################################################################################
+
 
 def calculateReprojectionError(cameraMatrix, dist, rvecs, tvecs, objPoints, imgPoints):
     mean_error = 0
@@ -147,10 +150,13 @@ def calibrateCamera():
 #    SAVE CALIBRATION DATA                                                                                                                                        #
 ####################################################################################################################################################################
 
+
 def saveCameraCalibration(cameraMatrix, dist, rvecs, tvecs):
     """
         Save camera calibration data to pickle file
     """
+    print(cameraMatrix)
+    print(dist)
     calibrationData = {
         "cameraMatrix": cameraMatrix,
         "dist": dist,

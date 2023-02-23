@@ -28,7 +28,7 @@ from xarm.wrapper import XArmAPI
 
 
 class Robot:
-    def __init__(self, ip, logger):
+    def __init__(self, ip, logger, coordOffset=None):
         self.logger = logger
         self.logger.info("Connecting to robot...")
         self.robot = XArmAPI(ip)
@@ -37,6 +37,10 @@ class Robot:
         self.robot.set_mode(0)
         self.robot.set_state(state=0)
         self.logger.info("Robot connected!")
+        self.coordOffset = coordOffset
+
+        if coordOffset != None:
+            self.setWorldOffset(coordOffset)
 
     # move roboto set default parameters
     def move(self, x=None, y=None, z=None, roll=None, pitch=None, yaw=None, speed=SPEED_MIDDLE, mvacc=None, wait=True, timeout=0):
@@ -54,14 +58,14 @@ class Robot:
 
     def move_todrop(self):
         self.robot.set_servo_angle(
-            angle=[90, 0, 90, 0.0, 90, 0], speed=SPEED_FAST, acceleration=5, is_radian=False, wait=True)
+            angle=[-122, 24, 58.9,-9.7, 32.9, -66.9], speed=SPEED_VERY_FAST, acceleration=5, is_radian=False, wait=True)
 
     def close(self):
         self.robot.disconnect()
 
     def standby(self):
         self.robot.set_servo_angle(
-            angle=[90, 0, 90, 0.0, 90, 0], speed=SPEED_FAST, acceleration=5, is_radian=False, wait=True)
+            angle=[-90, 0, 90, 0.0, 90, 0], speed=SPEED_SLOW, acceleration=5, is_radian=False, wait=True)
 
     def getPosition(self):
         return self.robot.get_position()[1]
@@ -82,15 +86,36 @@ class Robot:
     def getIsMoving(self):
         return self.robot.get_is_moving()
 
-    def setWorldOffset(self, offset, is_radian=False):
+    def setWorldOffset(self, offset=None, is_radian=False):
+        '''
+        Če želimo uporabiti že shranjene skalibrirane world coordinate izberi worldCoordRobot class
+        in potem nekje v kodi naredi:
+        setWorldOffset()
+        
+        Dobro je dodati nekaj deleje za to nastavitvijo preden premaknemo robota.
+        '''
+        if offset == None:
+            offset = self.coordOffset
+        
         ret =  self.robot.set_world_offset(offset, is_radian)
         self.setState(0)
 
     def stop(self):
         self.setState(4)
 
+class worldCoordRobot(Robot):
+    '''
+    Uporabi kadar želiš nastaviti world coordinate offset iz shranjenih pickle datotek
+    '''
+    def __init__(self, ip, logger):
+        # read WORLD_COORDINATE_OFFSET_PATH file and set world offset
+        with open(WORLD_COORDINATE_OFFSET_PATH, 'rb') as f:
+            self.coordOffset = pickle.load(f)
+            print("World coordinate offset: ", self.coordOffset)
 
-if __name__ == "__main__":
+        Robot.__init__(self, ip, logger, self.coordOffset)
+
+def main():
     # Logging
     logging.basicConfig(
         level=logging.INFO,
@@ -103,17 +128,19 @@ if __name__ == "__main__":
     logger = logging.getLogger()
 
     # Robot
-    robot = Robot(ROBOT_IP, logger)
-    robot.home()
+    robot = worldCoordRobot(ROBOT_IP, logger)
+
+    robot.setWorldOffset()
 
     # Detector
     detector = NozzleDetector()
     detector.startDetecting()
+    
+    robot.standby()
+    time.sleep(1)
 
     while 1:
-        robot.standby()
         time.sleep(1)
-
         with detector.lock:
             if len(detector.nozzles) == 0:
                 logger.info("No objects detected, waiting 5 seconds...")
@@ -127,20 +154,27 @@ if __name__ == "__main__":
                     robot.set_position(
                         x=0, y=0, z=-5.5, speed=SPEED_SLOW, relative=True, wait=True)
                     robot.set_position(
-                        x=nozzle.x, y=nozzle.y, z=APPROACH_NOZZLE_Z, speed=SPEED_MIDDLE, wait=True)
+                        x=nozzle.x, y=nozzle.y, z=APPROACH_NOZZLE_Z, speed=SPEED_VERY_VERY_FAST, wait=True)
                     robot.set_position(
-                        x=0, y=0, z=10.5, speed=SPEED_VERY_SLOW, relative=True, wait=True)
+                        x=0, y=0, z=21.5, speed=SPEED_MIDDLE, relative=True, wait=True)
 
                     logger.info("Picking up object...")
                     robot.pick()
 
+                    robot.set_position(
+                        x=nozzle.x, y=nozzle.y, z=APPROACH_NOZZLE_Z, speed=SPEED_MIDDLE, wait=True)
+                    
                     logger.info("Moving to drop position...")
                     robot.move_todrop()
 
                     logger.info("Dropping object...")
                     robot.drop()
-                    logger.info("Moving to home...")
-                    robot.standby()
+                    #logger.info("Moving to home...")
+                    #robot.standby()
                     logger.info("Object picked up and dropped!")
+                    break
 
     robot.close()
+
+if __name__ == "__main__":
+    main()

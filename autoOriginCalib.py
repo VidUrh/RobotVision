@@ -9,10 +9,10 @@ from parameters import *
 import json
 import camera
 
-cam = camera.selfExpCamera()
+cam = camera.autoExpCamera()
 
 while True:
-    ret, frame = cam.getUndistortedImage()
+    ret, frame = cam.getdWarpedImage(IMAGE_PATH)
     if not ret:
         print("Failed to grab frame")
         break
@@ -68,6 +68,6 @@ def detectCheckerBoard(image, grayImage, criteria, boardDimension):
 CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 image, board_detected = detectCheckerBoard(
-    frame, gray, CRITERIA, CALIBRATION_SQUARES)
+    frame, gray, CRITERIA, (CALIBRATION_SQUARE_WIDTH, CALIBRATION_SQUARE_HEIGHT))
 
 cam.showImage("test1", image, 0)

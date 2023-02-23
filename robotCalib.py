@@ -29,7 +29,7 @@ class App:
 
         self.CLICK_XZ     = 0 # 0 for x, 1 for z (for connecting arrow keys to x or z slider)
         self.COORD_SYSTEM = 1 # 0 for base, 1 for user (for saving which coord is in use)
-
+        self.robotPosition = None
         # set start coordinates
         self.START_X = START_X # in mm
         self.START_Y = START_Y # in mm
@@ -155,7 +155,7 @@ class App:
         self.ySlider.grid(row=9, column=0, columnspan=10)
 
         # add slider for z axis on 1 decimal point
-        self.zSlider = tk.Scale(self.master, from_=200, to=-100, length=200, orient=tk.VERTICAL,
+        self.zSlider = tk.Scale(self.master, from_=200, to=-200, length=200, orient=tk.VERTICAL,
                                 resolution=Z_SLIDER_RESOLUTION, label="Z (mm)", 
                                 command=self.move_Z, bg="#bfecff")
         self.zSlider.bind("<Button-1>", self.click_Z)
@@ -193,6 +193,7 @@ class App:
                 self.print_terminal("Coord offset: "+str(self.coordOffset)+"\n")
 
         if self.robot != None:
+            self.robot.setWorldOffset([0, 0, 0, 0, 0, 0]) # set base coord at init
             self.refresh_slider()
             self.print_terminal("Robot connected\n")
         else:
@@ -213,11 +214,12 @@ class App:
 
         # user coord
         elif self.COORD_SYSTEM == 0:
-            self.print_terminal("User coord\n")
-            self.btCoord.config(text="User coord", bg="light green")
-            self.robot.setWorldOffset(self.coordOffset)
             if self.robot != None:
+                self.print_terminal("User coord\n")
+                self.btCoord.config(text="User coord", bg="light green")
+                self.robot.setWorldOffset(self.coordOffset)
                 self.refresh_slider()
+                pass
 
             self.COORD_SYSTEM = 1
 
@@ -442,10 +444,10 @@ class App:
             # print start coordinates
             self.print_terminal("Start coordinates: X: "+str(self.START_X)+" Y: "+str(self.START_Y)+" Z: "+str(self.START_Z)+"\n")
             # set slider to start coordinates
-            self.robot.move(self.START_X, self.START_Y, self.zSlider.get(), 0, 0, 0, speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
+            self.robot.move(self.START_X, self.START_Y, self.zSlider.get(), speed=self.robotSpeed, mvacc=self.mvacc, wait=True)
             while self.robot.getIsMoving() != False:
                 time.sleep(1)
-            self.robot.move(self.START_X, self.START_Y, self.START_Z, 0, 0, 0, speed=self.robotSpeed, mvacc=self.mvacc)
+            self.robot.move(self.START_X, self.START_Y, self.START_Z, speed=self.robotSpeed, mvacc=self.mvacc)
             time.sleep(0.5)
             while self.robot.getIsMoving() != False:
                 time.sleep(0.5)
@@ -551,14 +553,17 @@ class App:
         self.terminal.see(tk.END)
 
     def refresh_slider(self):
-        if self.robot == None:
-            self.print_terminal("REFRESHSLIDER: Cant get robot position, no robot connected\n")
-        else:
+        if self.robot != None:
             self.robotPosition = self.robot.getPosition()
+            self.robot.move(x = self.robotPosition[0], y = self.robotPosition[1], z = self.robotPosition[2],
+                            roll=self.robotPosition[3], pitch=self.robotPosition[4], yaw=self.robotPosition[5],
+                            speed=self.robotSpeed, mvacc=self.mvacc, wait=False)
             self.xSlider.set(self.robotPosition[0])
             self.ySlider.set(self.robotPosition[1])
             self.zSlider.set(self.robotPosition[2])
-            print(self.robotPosition)  
+            print(self.robotPosition)
+        else: 
+            self.print_terminal("REFRESHSLIDER: Cant get robot position, no robot connected\n")
 
 # ---------------------------- MAIN --------------------------------------------
 # make main for testing gui

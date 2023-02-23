@@ -12,8 +12,10 @@ import threading
 import pickle
 import camera
 
+
 class CameraReadError(Exception):
     pass
+
 
 class Nozzle:
     def __init__(self, position_x, position_y, rotation):
@@ -44,8 +46,8 @@ class NozzleDetector:
             Funkcija za detekcijo nozzlov na sliki.
             Vrne seznam objektov class-a Nozzle.
         """
-        ret, self.image = self.cam.getUndistortedImage()
-        
+        ret, self.image = self.cam.getdWarpedImage()
+
         # transform to binary image
         transformed = self.transformImage(self.image)
 
@@ -58,13 +60,55 @@ class NozzleDetector:
         # find nozzle positions
         nozzles = []
 
+        # Draw helper lines in debug mode
+        if DEBUG_MODE is True:
+            cv2.circle(self.image, (ORIGIN_COORD_FROM_CAM_X,
+                                    ORIGIN_COORD_FROM_CAM_Y), 5, (255, 0, 255), -1)
+
+            # Draw the x and y axis
+            lineLength = 2000
+            cv2.line(self.image, (ORIGIN_COORD_FROM_CAM_X - lineLength, ORIGIN_COORD_FROM_CAM_Y),
+                     (ORIGIN_COORD_FROM_CAM_X + lineLength, ORIGIN_COORD_FROM_CAM_Y), (0, 0, 255), 2)
+
+            cv2.line(self.image, (ORIGIN_COORD_FROM_CAM_X, ORIGIN_COORD_FROM_CAM_Y - lineLength), (
+                ORIGIN_COORD_FROM_CAM_X, ORIGIN_COORD_FROM_CAM_Y + lineLength), (0, 255, 0), 2)
+
         for nozzle in filteredContours:
             nozzleXpos, nozzleYpos = self.getCoordinates(nozzle)
             nozzleRotation = self.getOrientation(nozzle)
             nozzleInWorldX, nozzleInWorldY = self.transformFromCameraToOrigin(
                 nozzleXpos, nozzleYpos)
+            
+            # offset for robot
+            nozzleInWorldX += 3
+            nozzleInWorldY += 7
+
+            xOffset, yOffset = 15, 0
+            #nozzleRotation = nozzleRotation * -1
+            print(nozzleRotation)
+            nozzleOffsetX = -xOffset * math.cos(math.radians(nozzleRotation))# - yOffset * math.sin(nozzleRotation)
+            nozzleOffsetY = xOffset * math.sin(math.radians(nozzleRotation))# + yOffset * math.cos(nozzleRotation)
+            nozzleInWorldX += nozzleOffsetX
+            nozzleInWorldY += nozzleOffsetY
+
+            
             nozzles.append(
                 Nozzle(nozzleInWorldX, nozzleInWorldY, nozzleRotation))
+
+            # Draw helper lines in debug mode
+            if DEBUG_MODE is True:
+                cv2.putText(self.image, f'({nozzleInWorldX})', (
+                    nozzleXpos+50, nozzleYpos), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                cv2.putText(self.image, f'({nozzleInWorldY})', (
+                    nozzleXpos+50, nozzleYpos + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                cv2.circle(self.image, (nozzleXpos, nozzleYpos),
+                           5, (255, 0, 255), -1)
+
+                cv2.line(self.image, (nozzleXpos - lineLength, nozzleYpos),
+                         (nozzleXpos + lineLength, nozzleYpos), (0, 0, 255), 2)
+
+                cv2.line(self.image, (nozzleXpos, nozzleYpos - lineLength), (
+                    nozzleXpos, nozzleYpos + lineLength), (0, 255, 0), 2)
 
         with self.lock:
             self.nozzles = nozzles
@@ -92,10 +136,10 @@ class NozzleDetector:
         kernel = np.ones((3, 3), np.uint8)
 
         # erode the frame
-        eroded = cv2.erode(thresh, kernel, iterations=4)
+        eroded = cv2.erode(thresh, kernel, iterations=8)
 
         # dilate the frame
-        dilated = cv2.dilate(eroded, kernel, iterations=3)
+        dilated = cv2.dilate(eroded, kernel, iterations=6)
 
         return dilated
 
@@ -176,7 +220,8 @@ class NozzleDetector:
         rectCx, rectCy = rotatedRect[0]
         cX, cY = self.getCoordinates(objectContour)
         # Determine if the object is upside down
-        isUpside = self.getTopBottomOrientation(rectCx, rectCy, cX, cY, orientation)
+        isUpside = self.getTopBottomOrientation(
+            rectCx, rectCy, cX, cY, orientation)
         # Fix orientation if flipped
         orientation = orientation + 180 * isUpside
 
@@ -245,14 +290,14 @@ class NozzleDetector:
         rotatedX = x * math.cos(ORIGIN_ROTATION_FROM_CAM) - \
             y * math.sin(ORIGIN_ROTATION_FROM_CAM)
         rotatedY = x * math.sin(ORIGIN_ROTATION_FROM_CAM) + \
-            y * math.cos(ORIGIN_ROTATION_FROM_CAM)       
+            y * math.cos(ORIGIN_ROTATION_FROM_CAM)
         return rotatedX, rotatedY
 
     def detectingThread(self):
         self.running = True
         while self.running:
             self.detectNozzles()
-            cv2.imshow("image", self.image)
+            self.cam.showImage("image", self.image)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 self.stopDetecting()
             time.sleep(0.1)
