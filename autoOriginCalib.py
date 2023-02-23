@@ -9,7 +9,7 @@ from parameters import *
 import json
 import camera
 
-cam = camera.selfExpCamera()
+cam = camera.autoExpCamera()
 
 while True:
     ret, frame = cam.getdWarpedImage(IMAGE_PATH)
