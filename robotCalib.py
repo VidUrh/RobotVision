@@ -37,8 +37,8 @@ class App:
 
         self._job = None # for slider delay
 
-        self.pointPklPath    = 'robotCalibPoints.pickle'      # path to pickle file for points
-        self.coordOffPklPath = 'robotCalibCoordOffset.pickle' # path to pickle file for coord offset
+        self.pointPklPath    = 'robotCalibPoints.pkl'      # path to pickle file for points
+        self.coordOffPklPath = 'robotCalibCoordOffset.pkl' # path to pickle file for coord offset
 
         # ------------------ GUI ------------------
         self.master = master
