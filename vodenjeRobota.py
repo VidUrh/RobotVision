@@ -58,14 +58,14 @@ class Robot:
 
     def move_todrop(self):
         self.robot.set_servo_angle(
-            angle=[90, 0, 90, 0.0, 90, 0], speed=SPEED_FAST, acceleration=5, is_radian=False, wait=True)
+            angle=[-122, 24, 58.9,-9.7, 32.9, -66.9], speed=SPEED_VERY_FAST, acceleration=5, is_radian=False, wait=True)
 
     def close(self):
         self.robot.disconnect()
 
     def standby(self):
         self.robot.set_servo_angle(
-            angle=[0, 0, 90, 0.0, 90, 0], speed=SPEED_FAST, acceleration=5, is_radian=False, wait=True)
+            angle=[-90, 0, 90, 0.0, 90, 0], speed=SPEED_SLOW, acceleration=5, is_radian=False, wait=True)
 
     def getPosition(self):
         return self.robot.get_position()[1]
@@ -129,18 +129,18 @@ def main():
 
     # Robot
     robot = worldCoordRobot(ROBOT_IP, logger)
-    robot.home()
 
     robot.setWorldOffset()
 
     # Detector
     detector = NozzleDetector()
     detector.startDetecting()
+    
+    robot.standby()
+    time.sleep(1)
 
     while 1:
-        robot.standby()
         time.sleep(1)
-
         with detector.lock:
             if len(detector.nozzles) == 0:
                 logger.info("No objects detected, waiting 5 seconds...")
@@ -154,21 +154,25 @@ def main():
                     robot.set_position(
                         x=0, y=0, z=-5.5, speed=SPEED_SLOW, relative=True, wait=True)
                     robot.set_position(
-                        x=nozzle.x, y=nozzle.y, z=APPROACH_NOZZLE_Z, speed=SPEED_MIDDLE, wait=True)
+                        x=nozzle.x, y=nozzle.y, z=APPROACH_NOZZLE_Z, speed=SPEED_VERY_VERY_FAST, wait=True)
                     robot.set_position(
-                        x=0, y=0, z=10.5, speed=SPEED_VERY_SLOW, relative=True, wait=True)
+                        x=0, y=0, z=21.5, speed=SPEED_MIDDLE, relative=True, wait=True)
 
                     logger.info("Picking up object...")
                     robot.pick()
 
+                    robot.set_position(
+                        x=nozzle.x, y=nozzle.y, z=APPROACH_NOZZLE_Z, speed=SPEED_MIDDLE, wait=True)
+                    
                     logger.info("Moving to drop position...")
                     robot.move_todrop()
 
                     logger.info("Dropping object...")
                     robot.drop()
-                    logger.info("Moving to home...")
-                    robot.standby()
+                    #logger.info("Moving to home...")
+                    #robot.standby()
                     logger.info("Object picked up and dropped!")
+                    break
 
     robot.close()
 
