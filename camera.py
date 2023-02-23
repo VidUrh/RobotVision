@@ -101,6 +101,19 @@ class Camera:
         cv2.imwrite("warped.jpg", self.image)
 
         return self.ret, self.image
+    
+    def warpImage(self, image):
+        """
+        Function to warp perspective of image and returns transformed image.
+        Args:
+            image (numpy.ndarray): Image to be transformed.
+        Returns:
+            transformed_img (numpy.ndarray): Transformed image.
+        """
+        self.image = cv2.undistort(self.image, self.newcameramtx, self.dist)
+        self.image = self.warpPerspective(self.image)
+
+        return self.image
 
     def warpPerspective(self, image):
         """
@@ -116,6 +129,28 @@ class Camera:
                                             int(HOMOGRAPHY_SCALING_FACTOR * CALIBRATION_SQUARE_HEIGHT * HOMOGRAPHY_FIELD_OUTER_SPACE_BOTTOMRIGHT)))
 
         return transformed_img
+    
+    def transformFromCameraToOrigin(self, x, y):
+        """
+        Function to transform coordinates from camera frame to origin frame
+        Args:
+            x: x coordinate of the object
+            y: y coordinate of the object
+        Returns:
+            x: x coordinate of the object in origin frame
+            y: y coordinate of the object in origin frame
+        """
+        # Transform coordinates from camera frame to origin frame
+        x = (x - ORIGIN_COORD_FROM_CAM_X) * PIXEL_TO_MM
+        y = (y - ORIGIN_COORD_FROM_CAM_Y) * PIXEL_TO_MM
+
+        # Rotate coordinates from camera frame to origin frame
+        rotatedX = x * math.cos(ORIGIN_ROTATION_FROM_CAM) - \
+            y * math.sin(ORIGIN_ROTATION_FROM_CAM)
+        rotatedY = x * math.sin(ORIGIN_ROTATION_FROM_CAM) + \
+            y * math.cos(ORIGIN_ROTATION_FROM_CAM)
+        return rotatedX, rotatedY
+
 
     def saveImage(self, path, image, number='', extension=".png"):
         '''
@@ -227,7 +262,6 @@ class autoExpCamera(Camera):
     '''
     autoCamera class for handling camera and images operations for auto exposure mode
     '''
-
     def __init__(self):
         if IMAGE_PATH == None:
             self.cam = cv2.VideoCapture(CAMERA_PORT, cv2.CAP_DSHOW)
@@ -258,15 +292,15 @@ class autoExpCamera(Camera):
         cv2.createTrackbar('Beta', 'image', 0, 200, self.setBeta)
         cv2.setTrackbarPos('Aplha', 'image', 100)
         cv2.setTrackbarPos('Beta', 'image', 100)
-        image = Camera.getImage(self)[1]
-        cv2.imshow('image', image)
+        self.image = Camera.getImage(self)[1]
+        cv2.imshow('image', self.image)
         cv2.moveWindow('image', 0, 0)
 
         while True:
-            image = Camera.getImage(self)[1]
+            self.image = Camera.getImage(self)[1]
             print(self.alpha, self.beta)
             adjImage = cv2.convertScaleAbs(
-                image, alpha=self.alpha, beta=self.beta)
+                self.image, alpha=self.alpha, beta=self.beta)
             cv2.imshow('image', adjImage)
 
             key = cv2.waitKey(1)
@@ -276,14 +310,29 @@ class autoExpCamera(Camera):
     def setAlpha(self, x):
         self.alpha = x / 100
         # print(alpha)
-        image = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
-        cv2.imshow('image', image)
+        self.image = cv2.convertScaleAbs(self.image, alpha=self.alpha, beta=self.beta)
+        cv2.imshow('image', self.image)
 
     def setBeta(self, x):
         self.beta = x - 100
         # print(beta)
-        image = cv2.convertScaleAbs(image, alpha=self.alpha, beta=self.beta)
-        cv2.imshow('image', image)
+        self.image = cv2.convertScaleAbs(self.image, alpha=self.alpha, beta=self.beta)
+        cv2.imshow('image', self.image)
+
+    def setBrightness(self, image, alpha=None, beta=None):
+        '''
+        Function for setting image brightness with convertScaleAbs function
+        '''
+        if alpha == None:
+            alpha = self.alpha
+        if beta == None:
+            beta = self.beta
+        print("alpha: ", alpha, "beta: ", beta)
+        setImage = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
+        cv2.imshow('image da je', setImage)
+        cv2.waitKey(0)
+
+        return setImage
 
 
 # Main functions or tests
