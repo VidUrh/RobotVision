@@ -13,22 +13,23 @@ import camera
 from nozzleDetection import NozzleDetector
 import pandas as pd
 import time
+import vodenjeRobota as vr
+import logging
 
 # make camera object
-cam = camera.selfExpCamera()
-# make nozzle detector object
-detector = NozzleDetector()
+cam = camera.autoExpCamera()
+robot = vr.worldCoordRobot(ROBOT_IP, logging.getLogger())
 
 # make data frame for reference
 dfRef = pd.DataFrame(columns=["xRef", "yRef"])
 
 # make same as points25 but in dfRef (dont use points25 because it is a numpy array)
-for y in range(CALIBRATION_SQUARE_HEIGHT-1):
-    for x in range(CALIBRATION_SQUARE_WIDTH-1):
-        dfRef.loc[y*(CALIBRATION_SQUARE_WIDTH-1)+x] = [x*25, y*25]
+for y in range(CALIBRATION_SQUARE_HEIGHT):
+    for x in range(CALIBRATION_SQUARE_WIDTH):
+        dfRef.loc[y*(CALIBRATION_SQUARE_WIDTH)+x] = [x*25, y*25]
 
 # maka data frame for error
-dfErr = pd.DataFrame(columns=["id", "xError", "yError"])
+dfErr = pd.DataFrame(columns=["id", "x", "y", "xError", "yError"])
 dfErr["id"] = dfErr["id"].astype(int)
 
 def dist(p1):
@@ -44,19 +45,19 @@ def detectCheckerBoard(image, grayImage, criteria, boardDimension):
             corners1 = list(reversed(corners1))
 
         for i, corner in enumerate(corners1):
-            x, y = detector.transformFromCameraToOrigin(*corner[0])
+            x, y = cam.transformFromCameraToOrigin(*corner[0])
 
             #print(f"Point {i} refr coordinates: ({dfRef.loc[i][0]}, {dfRef.loc[i][1]})")
             #print(f"Point {i} coordinates: ({x}, {y})")
-            xError = abs(dfRef.loc[i][0] - x)
-            yError = abs(dfRef.loc[i][1] - y)
+            xError = abs(dfRef["xRef"].loc[i] - x)
+            yError = abs(dfRef["yRef"].loc[i] - y)
             #print(f"Point {i} error: ({xError}, {yError})")
 
             xError = round(xError, 2)
             yError = round(yError, 2)
 
             # add error to data frame
-            dfErr.loc[i] = [i, xError, yError]
+            dfErr.loc[i] = [i, x, y, xError, yError]
 
         # find average error
         xError = dfErr["xError"].mean()
@@ -91,25 +92,67 @@ def detectCheckerBoard(image, grayImage, criteria, boardDimension):
 
             # print(f"Point {meanError['id'].loc[i]} error: ({meanError.loc[i][1]}, {meanError.loc[i][2]})")
 
-    return image, ret
+    return image, ret, dfErr
 
 def main():
+    #cam.imageSettings()
     while True:
-        ret, frame = cam.getdWarpedImage(IMAGE_PATH)
-        if not ret:
-            print("Failed to grab frame")
-            break
-        else:
-            print("Image captured")
+        ret, frame = cam.getImage()
+        if cam.showImage("test", frame, 1) & 0xFF == ord('q'):
             break
 
+    frame = cam.warpImage(frame)
+    cam.saveImage("warp", frame)
+    cam.showImage("warp", frame, 0)
+
     CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    #frame = cam.setBrightness(frame)
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    cam.saveImage("gray", gray)
     image, board_detected = detectCheckerBoard(frame, gray, CRITERIA, (CALIBRATION_SQUARE_WIDTH-1, 
                                                                        CALIBRATION_SQUARE_HEIGHT-1))
     
-    cam.showImage("test1", image, 0)
+    cam.saveImage("errPoint", image)
+    cam.showImage("point", image, 0)
 
+def moveRobot():
+    #cam.imageSettings()
+    while True:
+        ret, frame = cam.getImage()
+        if cam.showImage("test", frame, 1) & 0xFF == ord('q'):
+            break
+
+    frame = cam.warpImage(frame)
+    cam.saveImage("warp", frame)
+    cam.showImage("warp", frame, 0)
+
+    CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    #frame = cam.setBrightness(frame)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    cam.saveImage("gray", gray)
+    image, board_detected, corners = detectCheckerBoard(frame, gray, CRITERIA, (CALIBRATION_SQUARE_WIDTH, 
+                                                                       CALIBRATION_SQUARE_HEIGHT))
+    
+    cam.showImage("point", image, 0)
+    cam.saveImage("errPoint", image)
+    
+    print(corners)
+    robot.setWorldOffset()
+    time.sleep(0.2)
+    # for all x any y in corners dataframe to move robot to point
+    for i in range(len(corners)):
+        vrstica   = i//CALIBRATION_SQUARE_WIDTH
+        stolpec = i%CALIBRATION_SQUARE_WIDTH
+        print(vrstica, stolpec)
+        if vrstica not in range(2,8) or stolpec not in range(5,7):
+            continue
+            
+        print(f"Point {i}: ({corners['x'].loc[i]}, {corners['y'].loc[i]})")
+        robot.move(corners['x'].loc[i], corners['y'].loc[i], z=-2, speed=50)
+        time.sleep(0.2)
+        while robot.getIsMoving():
+            time.sleep(0.1)
 
 if __name__ == "__main__":
-    main()
+    #main()
+    moveRobot()
