@@ -44,7 +44,8 @@ class Robot:
 
     # move roboto set default parameters
     def move(self, x=None, y=None, z=None, roll=None, pitch=None, yaw=None, speed=SPEED_MIDDLE, mvacc=None, wait=True, timeout=0):
-        self.robot.set_position(x, y, z, roll, pitch, yaw, speed=speed, mvacc=mvacc, wait=wait, timeout=timeout)
+        self.robot.set_position(
+            x, y, z, roll, pitch, yaw, speed=speed, mvacc=mvacc, wait=wait, timeout=timeout)
 
     def pick(self):
         self.robot.open_lite6_gripper()
@@ -58,7 +59,7 @@ class Robot:
 
     def move_todrop(self):
         self.robot.set_servo_angle(
-            angle=[-122, 24, 58.9,-9.7, 32.9, -66.9], speed=SPEED_VERY_FAST, acceleration=5, is_radian=False, wait=True)
+            angle=[-122, 24, 58.9, -9.7, 32.9, -66.9], speed=SPEED_VERY_FAST, acceleration=5, is_radian=False, wait=True)
 
     def close(self):
         self.robot.disconnect()
@@ -73,7 +74,7 @@ class Robot:
     def set_position(self, x, y, z, speed, relative=False, wait=True):
         self.robot.set_position(
             x=x, y=y, z=z, speed=speed, relative=relative, wait=wait)
-        
+
     def calibrateUserOrientationOffset(self, points, mode=0, trust_ind=0, input_is_radian=False, return_is_radian=False):
         return self.robot.calibrate_user_orientation_offset(points, mode, trust_ind, input_is_radian, return_is_radian)
 
@@ -82,7 +83,7 @@ class Robot:
 
     def getState(self):
         return self.robot.get_state()
-    
+
     def getIsMoving(self):
         return self.robot.get_is_moving()
 
@@ -91,22 +92,34 @@ class Robot:
         Če želimo uporabiti že shranjene skalibrirane world coordinate izberi worldCoordRobot class
         in potem nekje v kodi naredi:
         setWorldOffset()
-        
+
         Dobro je dodati nekaj deleje za to nastavitvijo preden premaknemo robota.
         '''
         if offset == None:
             offset = self.coordOffset
-        
-        ret =  self.robot.set_world_offset(offset, is_radian)
+
+        ret = self.robot.set_world_offset(offset, is_radian)
         self.setState(0)
 
     def stop(self):
         self.setState(4)
 
+    def moveL(self, pose, speed, relative=False, wait=True, is_radian=False):
+        x, y, z, r, p, y = pose
+        self.robot.set_position(
+            x=x, y=y, z=z, roll=r, pitch=p, yaw=y, speed=speed, relative=relative, wait=wait, mv_cmd=1)
+
+    def moveJ(self, pose, speed, relative=False, wait=True, is_radian=False):
+        code, pose = self.robot.get_inverse_kinematic(pose)
+        self.robot.set_servo_angle(
+            pose, speed=speed, relative=relative, wait=wait, is_radian=is_radian)
+
+
 class worldCoordRobot(Robot):
     '''
     Uporabi kadar želiš nastaviti world coordinate offset iz shranjenih pickle datotek
     '''
+
     def __init__(self, ip, logger):
         # read WORLD_COORDINATE_OFFSET_PATH file and set world offset
         with open(WORLD_COORDINATE_OFFSET_PATH, 'rb') as f:
@@ -114,6 +127,7 @@ class worldCoordRobot(Robot):
             print("World coordinate offset: ", self.coordOffset)
 
         Robot.__init__(self, ip, logger, self.coordOffset)
+
 
 def main():
     # Logging
@@ -135,7 +149,7 @@ def main():
     # Detector
     detector = NozzleDetector()
     detector.startDetecting()
-    
+
     robot.standby()
     time.sleep(1)
 
@@ -163,18 +177,19 @@ def main():
 
                     robot.set_position(
                         x=nozzle.x, y=nozzle.y, z=APPROACH_NOZZLE_Z, speed=SPEED_MIDDLE, wait=True)
-                    
+
                     logger.info("Moving to drop position...")
                     robot.move_todrop()
 
                     logger.info("Dropping object...")
                     robot.drop()
-                    #logger.info("Moving to home...")
-                    #robot.standby()
+                    # logger.info("Moving to home...")
+                    # robot.standby()
                     logger.info("Object picked up and dropped!")
                     break
 
     robot.close()
+
 
 if __name__ == "__main__":
     main()
