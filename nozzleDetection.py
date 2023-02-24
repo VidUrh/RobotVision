@@ -86,8 +86,8 @@ class NozzleDetector:
             xOffset, yOffset = 15, 0
             #nozzleRotation = nozzleRotation * -1
             print(nozzleRotation)
-            nozzleOffsetX = -xOffset * math.cos(math.radians(nozzleRotation))# - yOffset * math.sin(nozzleRotation)
-            nozzleOffsetY = xOffset * math.sin(math.radians(nozzleRotation))# + yOffset * math.cos(nozzleRotation)
+            nozzleOffsetX = -xOffset * math.cos(math.radians(nozzleRotation))
+            nozzleOffsetY = xOffset * math.sin(math.radians(nozzleRotation))
             nozzleInWorldX += nozzleOffsetX
             nozzleInWorldY += nozzleOffsetY
 
